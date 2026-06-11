@@ -31,7 +31,7 @@ export function useFirestore<T = any>(collectionName: string) {
     // to be safe let's assume we query by ownerUid across the board for simplicity unless admin.
     
     user.getIdTokenResult().then(tokenResult => {
-      if (tokenResult.claims.admin) {
+      if (tokenResult.claims.admin || ['templates', 'platform_settings'].includes(collectionName)) {
         q = query(collection(db, collectionName));
       } else {
         q = query(collection(db, collectionName), where('ownerUid', '==', user.uid));

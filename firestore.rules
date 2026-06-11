@@ -89,5 +89,20 @@ service cloud.firestore {
       allow read: if isOwner() || isAdmin();
       allow write: if isAdmin(); // Analytics are written securely perhaps, or by owner
     }
+
+    match /api_keys/{keyId} {
+      allow read, update, delete: if isOwner() || isAdmin();
+      allow create: if isCreatingWithOwnerUid() || isAdmin();
+    }
+
+    match /webhooks/{webhookId} {
+      allow read, update, delete: if isOwner() || isAdmin();
+      allow create: if isCreatingWithOwnerUid() || isAdmin();
+    }
+
+    match /notifications/{notifId} {
+      allow read, update, delete: if isOwner() || isAdmin();
+      allow create: if isCreatingWithOwnerUid() || isAdmin();
+    }
   }
 }
