@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+    
+    function isMarketer() {
+      return request.auth != null && 
+             (!('admin' in request.auth.token) || request.auth.token.admin == false);
+    }
+
+    function isOwner() {
+      return request.auth != null && resource.data.ownerUid == request.auth.uid;
+    }
+    
+    function isCreatingWithOwnerUid() {
+      return request.auth != null && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    // Users
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && request.auth.uid == userId &&
+                    (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']));
+      allow create: if request.auth != null && request.auth.uid == userId && 
+                    (!('role' in request.resource.data) || request.resource.data.role == 'marketer'); 
+      // Admins can read all users and set roles
+      allow read, write: if isAdmin();
+    }
+
+    // Shared / Admin Managed global settings or collections
+    match /platform_settings/{settingId} {
+      allow read: if request.auth != null; // marketers need to read platform settings
+      allow write: if isAdmin();
+    }
+    
+    match /templates/{templateId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    // Webinars
+    match /webinars/{webinarId} {
+      allow read, update, delete: if isOwner() || isAdmin();
+      allow create: if isCreatingWithOwnerUid() || isAdmin();
+    }
+
+    // Registrations
+    match /registrations/{registrationId} {
+      allow read, update, delete: if isOwner() || isAdmin();
+      allow create: if isCreatingWithOwnerUid() || isAdmin();
+    }
+
+    // Attendees
+    match /attendees/{attendeeId} {
+      allow read, update, delete: if isOwner() || isAdmin();
+      allow create: if isCreatingWithOwnerUid() || isAdmin();
+    }
+
+    // Campaigns (Email, Evergreen, Chat, etc)
+    match /email_campaigns/{campaignId} {
+      allow read, update, delete: if isOwner() || isAdmin();
+      allow create: if isCreatingWithOwnerUid() || isAdmin();
+    }
+    
+    match /evergreen_campaigns/{campaignId} {
+      allow read, update, delete: if isOwner() || isAdmin();
+      allow create: if isCreatingWithOwnerUid() || isAdmin();
+    }
+
+    match /chat_simulations/{chatId} {
+      allow read, update, delete: if isOwner() || isAdmin();
+      allow create: if isCreatingWithOwnerUid() || isAdmin();
+    }
+    
+    match /polls/{pollId} {
+      allow read, update, delete: if isOwner() || isAdmin();
+      allow create: if isCreatingWithOwnerUid() || isAdmin();
+    }
+
+    match /analytics/{docId} {
+      allow read: if isOwner() || isAdmin();
+      allow write: if isAdmin(); // Analytics are written securely perhaps, or by owner
+    }
+  }
+}
