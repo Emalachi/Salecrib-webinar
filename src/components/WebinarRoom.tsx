@@ -1,6 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { PlayCircle, MessageSquare, Send, Users, Hand, Maximize, Settings, Pause } from 'lucide-react';
 import { cn } from '../lib/utils';
+
+const FIRST_NAMES = ['Alex', 'Sarah', 'Mike', 'Emily', 'Chris', 'Jessica', 'David', 'Ashley', 'James', 'Amanda'];
+const LAST_INITIALS = ['A.', 'B.', 'C.', 'D.', 'S.', 'M.', 'T.', 'W.', 'L.', 'R.'];
+const COMMENTS = [
+  'Wow, this is exactly what I needed to hear.',
+  'Can you clarify that last point?',
+  'I have been struggling with this for months!',
+  'Does this apply to B2B as well?',
+  'Mind blown 🤯',
+  'Taking so many notes right now.',
+  'Will there be a replay?',
+  'I am definitely going to implement this tomorrow.',
+  'What tool are you using for that?',
+  'This is the best training I have attended all year.',
+  'Where can I find the link to the templates?',
+  'Love the actionable advice.',
+  'Is it possible to automate that part?',
+  'Ha, I made that same mistake last week.',
+  'So true!'
+];
 
 export default function WebinarRoom({ onLeave }: { onLeave: () => void }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -10,6 +30,34 @@ export default function WebinarRoom({ onLeave }: { onLeave: () => void }) {
     { id: 2, user: 'Sarah J.', text: 'Excited for this!', isSystem: false, time: '10:01 AM' },
     { id: 3, user: 'Mike T.', text: 'Audio is coming through perfectly from my end.', isSystem: false, time: '10:02 AM' },
   ]);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let interval: any;
+    if (isPlaying) {
+      interval = setInterval(() => {
+        if (Math.random() > 0.6) {
+           const user = `${FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)]} ${LAST_INITIALS[Math.floor(Math.random() * LAST_INITIALS.length)]}`;
+           const text = COMMENTS[Math.floor(Math.random() * COMMENTS.length)];
+           
+           setMessages(prev => [...prev, {
+             id: Date.now() + Math.random(),
+             user,
+             text,
+             isSystem: false,
+             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+           }]);
+        }
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,6 +201,7 @@ export default function WebinarRoom({ onLeave }: { onLeave: () => void }) {
                 )}
               </div>
             ))}
+            <div ref={chatEndRef} />
           </div>
 
           {/* Chat Input */}
