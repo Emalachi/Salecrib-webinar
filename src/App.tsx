@@ -40,12 +40,13 @@ import TeamManagement from './components/TeamManagement';
 import Login from './components/Login';
 import RegistrationForm from './components/RegistrationForm';
 import WebinarRoom from './components/WebinarRoom';
+import LandingPageBuilder from './components/LandingPageBuilder';
 import PlatformSettings from './components/PlatformSettings';
 import MarketerRegistration from './components/MarketerRegistration';
 import { Repeat } from 'lucide-react';
 import { useFirestore } from './hooks/useFirestore';
 
-export type ViewState = 'dashboard' | 'webinars' | 'create-webinar' | 'registrations' | 'attendees' | 'analytics' | 'email' | 'evergreen' | 'integrations' | 'team' | 'settings';
+export type ViewState = 'dashboard' | 'webinars' | 'create-webinar' | 'registrations' | 'attendees' | 'analytics' | 'email' | 'evergreen' | 'integrations' | 'team' | 'settings' | 'page-builder';
 
 export default function App() {
   const [user, setUser] = useState<{ role: 'admin' | 'marketer'; email: string; name: string } | null>(null);
@@ -54,7 +55,7 @@ export default function App() {
   const [currentRegSlug, setCurrentRegSlug] = useState<string | null>(null);
   const [isExternalRoute, setIsExternalRoute] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const validViews: ViewState[] = ['dashboard', 'webinars', 'create-webinar', 'registrations', 'attendees', 'analytics', 'email', 'evergreen', 'integrations', 'team', 'settings'];
+  const validViews: ViewState[] = ['dashboard', 'webinars', 'create-webinar', 'registrations', 'attendees', 'analytics', 'email', 'evergreen', 'integrations', 'team', 'settings', 'page-builder'];
   
   const [currentView, setCurrentView] = useState<ViewState>(() => {
     if (typeof window !== 'undefined') {
@@ -63,6 +64,7 @@ export default function App() {
     }
     return 'dashboard';
   });
+  const [selectedWebinarSlug, setSelectedWebinarSlug] = useState<string | null>(null);
   
   // Intercept paths for external links like registration
   useEffect(() => {
@@ -421,7 +423,13 @@ export default function App() {
                 transition={{ duration: 0.2 }}
                 className="min-h-full"
               >
-                <WebinarsList onNavigate={setCurrentView} />
+                <WebinarsList 
+                  onNavigate={setCurrentView} 
+                  onEditPage={(slug) => {
+                    setSelectedWebinarSlug(slug);
+                    setCurrentView('page-builder');
+                  }} 
+                />
               </motion.div>
             )}
 
@@ -435,6 +443,22 @@ export default function App() {
                  className="h-full flex flex-col"
                >
                  <CreateWebinar onCancel={() => setCurrentView('webinars')} />
+               </motion.div>
+            )}
+
+            {currentView === 'page-builder' && (
+               <motion.div 
+                 key="page-builder"
+                 initial={{ opacity: 0, y: 10 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 exit={{ opacity: 0, y: -10 }}
+                 transition={{ duration: 0.2 }}
+                 className="h-full flex flex-col"
+               >
+                 <LandingPageBuilder 
+                   webinarSlug={selectedWebinarSlug} 
+                   onBack={() => setCurrentView('webinars')} 
+                 />
                </motion.div>
             )}
 

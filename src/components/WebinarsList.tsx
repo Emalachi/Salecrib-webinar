@@ -5,7 +5,7 @@ import type { ViewState } from '../App';
 
 import { useFirestore } from '../hooks/useFirestore';
 
-export default function WebinarsList({ onNavigate }: { onNavigate: (view: ViewState) => void }) {
+export default function WebinarsList({ onNavigate, onEditPage }: { onNavigate: (view: ViewState) => void; onEditPage?: (slug: string) => void }) {
   const { data: webinars, loading, error, deleteDocument } = useFirestore<any>('webinars');
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -150,6 +150,13 @@ export default function WebinarsList({ onNavigate }: { onNavigate: (view: ViewSt
                         {openMenuId === webinar.id && (
                           <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg shadow-lg z-50 py-1">
                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-zinc-800 text-sm">Edit Webinar</button>
+                             <button 
+                               onClick={() => { 
+                                 setOpenMenuId(null);
+                                 if (onEditPage) onEditPage(webinar.slug);
+                               }} 
+                               className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-zinc-800 text-sm"
+                             >Edit Landing Page</button>
                              <button className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-zinc-800 text-sm">Duplicate</button>
                              <button 
                                onClick={() => {
