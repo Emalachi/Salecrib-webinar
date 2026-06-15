@@ -23,7 +23,7 @@ const COMMENTS = [
 ];
 
 export default function WebinarRoom({ onLeave }: { onLeave: () => void }) {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [chatMessage, setChatMessage] = useState('');
   const [messages, setMessages] = useState([
     { id: 1, user: 'System', text: 'Welcome to the room!', isSystem: true, time: '10:00 AM' },
@@ -36,7 +36,7 @@ export default function WebinarRoom({ onLeave }: { onLeave: () => void }) {
     let interval: any;
     if (isPlaying) {
       interval = setInterval(() => {
-        if (Math.random() > 0.6) {
+        if (Math.random() > 0.2) {
            const user = `${FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)]} ${LAST_INITIALS[Math.floor(Math.random() * LAST_INITIALS.length)]}`;
            const text = COMMENTS[Math.floor(Math.random() * COMMENTS.length)];
            
@@ -48,7 +48,7 @@ export default function WebinarRoom({ onLeave }: { onLeave: () => void }) {
              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
            }]);
         }
-      }, 3000);
+      }, 1500);
     }
     return () => clearInterval(interval);
   }, [isPlaying]);
