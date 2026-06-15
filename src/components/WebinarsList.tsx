@@ -85,7 +85,18 @@ export default function WebinarsList({ onNavigate }: { onNavigate: (view: ViewSt
                 <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-500">Loading webinars...</td></tr>
               )}
               {error && (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-red-500">Error: {error}</td></tr>
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-red-500">
+                    {error.includes('Missing or insufficient permissions') ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <span className="font-semibold text-rose-600">Permission Denied</span>
+                        <span className="text-sm text-slate-600 dark:text-slate-400">You must deploy your Firestore rules to view your webinars. Please follow the instructions in <code className="px-1.5 py-0.5 bg-rose-100 dark:bg-rose-950 rounded text-rose-900 border border-rose-200">PRODUCTION_FIREBASE_SETUP.md</code> to run <code className="px-1.5 py-0.5 bg-rose-100 dark:bg-rose-950 rounded text-rose-900 border border-rose-200">firebase deploy --only firestore:rules</code>.</span>
+                      </div>
+                    ) : (
+                      `Error: ${error}`
+                    )}
+                  </td>
+                </tr>
               )}
               {!loading && filtered.map(webinar => (
                 <tr key={webinar.id} className="hover:bg-slate-50/50 dark:hover:bg-zinc-800/20 transition-colors group">

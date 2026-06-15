@@ -89,7 +89,11 @@ export default function CreateWebinar({ onCancel }: { onCancel: () => void }) {
       onCancel();
     } catch (err: any) {
       console.error(err);
-      setErrorDetails(err.message || 'Failed to publish webinar');
+      if (err.message && err.message.includes('Missing or insufficient permissions')) {
+        setErrorDetails('Permission denied: You must deploy the provided firestore.rules to your Firebase project. Check PRODUCTION_FIREBASE_SETUP.md for instructions.');
+      } else {
+        setErrorDetails(err.message || 'Failed to publish webinar');
+      }
       setLoading(false);
     }
   };

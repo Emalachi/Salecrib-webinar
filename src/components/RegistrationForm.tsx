@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, Mail, ShieldCheck, ArrowRight, Video, CheckCircle2 } from 'lucide-react';
+import { useFirestore } from '../hooks/useFirestore';
 
 function CountdownTimer({ targetDate }: { targetDate: Date }) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -45,8 +46,14 @@ function CountdownTimer({ targetDate }: { targetDate: Date }) {
   );
 }
 
-export default function RegistrationForm({ onComplete }: { onComplete: () => void }) {
+export default function RegistrationForm({ onComplete, slug }: { onComplete: () => void, slug?: string | null }) {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const { addDocument } = useFirestore<any>('registrations');
+  const { data: webinars } = useFirestore<any>('webinars');
+  
+  const webinar = webinars?.find((w: any) => w.slug === slug) || null;
+  const title = webinar?.title || '10x Your Marketing Strategy Using Automated Funnels';
+  const description = webinar?.description || 'Learn the exact system we used to scale 50+ SaaS companies to over $10M ARR using high-converting evergreen webinars.';
   
   // Set target date to next hour or 15 mins for dynamic evergreen feel
   const [targetDate] = useState(() => {
@@ -88,10 +95,10 @@ export default function RegistrationForm({ onComplete }: { onComplete: () => voi
             Evergreen Masterclass
           </div>
           <h1 className="text-4xl md:text-5xl font-display font-bold leading-tight mb-6">
-            10x Your Marketing Strategy Using Automated Funnels
+            {title}
           </h1>
           <p className="text-indigo-200 dark:text-zinc-400 text-lg mb-8">
-            Learn the exact system we used to scale 50+ SaaS companies to over $10M ARR using high-converting evergreen webinars.
+            {description}
           </p>
 
           <CountdownTimer targetDate={targetDate} />
@@ -120,9 +127,27 @@ export default function RegistrationForm({ onComplete }: { onComplete: () => voi
           <p className="text-slate-500 dark:text-zinc-400 mb-8">Watch the training instantly. Fill out the form below to get access.</p>
 
           <form 
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
-              setIsSubmitted(true);
+              const formData = new FormData(e.currentTarget);
+              const name = formData.get('name') as string;
+              const email = formData.get('email') as string;
+              
+              if (name && email) {
+                try {
+                  await addDocument({
+                    name,
+                    email,
+                    webinar: title,
+                    source: 'Organic',
+                    date: new Date().toLocaleDateString(),
+                    createdAt: new Date().toISOString()
+                  });
+                  setIsSubmitted(true);
+                } catch (err) {
+                  console.error("Failed to save registration:", err);
+                }
+              }
             }} 
             className="space-y-5"
           >
@@ -132,6 +157,7 @@ export default function RegistrationForm({ onComplete }: { onComplete: () => voi
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input 
                   type="text" 
+                  name="name"
                   required
                   placeholder="Jane Doe"
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
@@ -145,6 +171,7 @@ export default function RegistrationForm({ onComplete }: { onComplete: () => voi
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input 
                   type="email" 
+                  name="email"
                   required
                   placeholder="jane@company.com"
                   className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50"

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { PlayCircle, MessageSquare, Send, Users, Hand, Maximize, Settings, Pause } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { useFirestore } from '../hooks/useFirestore';
 
 const FIRST_NAMES = ['Alex', 'Sarah', 'Mike', 'Emily', 'Chris', 'Jessica', 'David', 'Ashley', 'James', 'Amanda'];
 const LAST_INITIALS = ['A.', 'B.', 'C.', 'D.', 'S.', 'M.', 'T.', 'W.', 'L.', 'R.'];
@@ -22,7 +23,11 @@ const COMMENTS = [
   'So true!'
 ];
 
-export default function WebinarRoom({ onLeave }: { onLeave: () => void }) {
+export default function WebinarRoom({ onLeave, slug }: { onLeave: () => void, slug?: string | null }) {
+  const { data: webinars } = useFirestore<any>('webinars');
+  const webinar = webinars?.find((w: any) => w.slug === slug) || null;
+  const title = webinar?.title || '10x Your Marketing Strategy Using Automated Funnels';
+
   const [isPlaying, setIsPlaying] = useState(true);
   const [chatMessage, setChatMessage] = useState('');
   const [messages, setMessages] = useState([
@@ -82,7 +87,7 @@ export default function WebinarRoom({ onLeave }: { onLeave: () => void }) {
             <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse"></span>
             Simulated Live
           </div>
-          <h1 className="text-sm font-medium text-slate-100 hidden sm:block">10x Your Marketing Strategy Using Automated Funnels</h1>
+          <h1 className="text-sm font-medium text-slate-100 hidden sm:block">{title}</h1>
         </div>
         <div className="flex items-center gap-4">
            <button 

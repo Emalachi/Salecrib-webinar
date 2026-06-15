@@ -51,6 +51,8 @@ export default function App() {
   const [user, setUser] = useState<{ role: 'admin' | 'marketer'; email: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [publicView, setPublicView] = useState<'login' | 'register' | 'register-marketer' | 'webinar-room'>('login');
+  const [currentRegSlug, setCurrentRegSlug] = useState<string | null>(null);
+  const [isExternalRoute, setIsExternalRoute] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const validViews: ViewState[] = ['dashboard', 'webinars', 'create-webinar', 'registrations', 'attendees', 'analytics', 'email', 'evergreen', 'integrations', 'team', 'settings'];
   
@@ -61,6 +63,21 @@ export default function App() {
     }
     return 'dashboard';
   });
+  
+  // Intercept paths for external links like registration
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path.startsWith('/reg/')) {
+        const slug = path.split('/reg/')[1];
+        if (slug) {
+          setCurrentRegSlug(slug);
+          setIsExternalRoute(true);
+          setPublicView('register');
+        }
+      }
+    }
+  }, []);
   
   const [showNotifications, setShowNotifications] = useState(false);
   
@@ -130,15 +147,25 @@ export default function App() {
     );
   }
 
+  // Handle explicit public routes (regardless of auth state)
+  if (isExternalRoute) {
+    if (publicView === 'register') {
+      return <RegistrationForm onComplete={() => setPublicView('webinar-room')} slug={currentRegSlug} />;
+    }
+    if (publicView === 'webinar-room') {
+      return <WebinarRoom onLeave={() => { setIsExternalRoute(false); setPublicView('login'); }} slug={currentRegSlug} />;
+    }
+  }
+
   if (!user) {
     if (publicView === 'register') {
-      return <RegistrationForm onComplete={() => setPublicView('webinar-room')} />;
+      return <RegistrationForm onComplete={() => setPublicView('webinar-room')} slug={currentRegSlug} />;
     }
     if (publicView === 'register-marketer') {
       return <MarketerRegistration onComplete={() => setPublicView('login')} onLogin={() => setPublicView('login')} />;
     }
     if (publicView === 'webinar-room') {
-      return <WebinarRoom onLeave={() => setPublicView('login')} />;
+      return <WebinarRoom onLeave={() => setPublicView('login')} slug={currentRegSlug} />;
     }
     return (
       <div className="relative min-h-screen">
