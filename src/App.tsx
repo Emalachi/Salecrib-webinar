@@ -35,7 +35,6 @@ import Attendees from './components/Attendees';
 import EmailCampaigns from './components/EmailCampaigns';
 import Chat from './components/Chat';
 import Integrations from './components/Integrations';
-import Polls from './components/Polls';
 import Analytics from './components/Analytics';
 import EvergreenCampaigns from './components/EvergreenCampaigns';
 import TeamManagement from './components/TeamManagement';
@@ -44,11 +43,10 @@ import RegistrationForm from './components/RegistrationForm';
 import WebinarRoom from './components/WebinarRoom';
 import PlatformSettings from './components/PlatformSettings';
 import MarketerRegistration from './components/MarketerRegistration';
-import TemplatesLibrary from './components/TemplatesLibrary';
 import { Repeat } from 'lucide-react';
 import { useFirestore } from './hooks/useFirestore';
 
-export type ViewState = 'dashboard' | 'webinars' | 'create-webinar' | 'registrations' | 'attendees' | 'analytics' | 'email' | 'evergreen' | 'chat' | 'polls' | 'integrations' | 'team' | 'settings' | 'templates';
+export type ViewState = 'dashboard' | 'webinars' | 'create-webinar' | 'registrations' | 'attendees' | 'analytics' | 'email' | 'evergreen' | 'chat' | 'integrations' | 'team' | 'settings';
 
 export default function App() {
   const [user, setUser] = useState<{ role: 'admin' | 'marketer'; email: string; name: string } | null>(null);
@@ -144,12 +142,10 @@ export default function App() {
     navItems = [
       { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'webinars', label: 'Evergreen Webinars', icon: Video },
-      { id: 'templates', label: 'Templates Library', icon: LayoutTemplate },
       { id: 'registrations', label: 'Registrations', icon: Users },
       { id: 'analytics', label: 'Analytics', icon: BarChart3 },
       { id: 'email', label: 'Automations', icon: Mail },
       { id: 'chat', label: 'Live Chat Simulant', icon: MessageSquare },
-      { id: 'polls', label: 'Polls', icon: PenTool },
       { id: 'settings', label: 'Settings', icon: Settings },
     ];
   }
@@ -390,19 +386,6 @@ export default function App() {
                </motion.div>
             )}
 
-            {currentView === 'templates' && (
-              <motion.div 
-                key="templates"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="absolute inset-0"
-              >
-                <TemplatesLibrary onUseTemplate={() => setCurrentView('create-webinar')} />
-              </motion.div>
-            )}
-
             {currentView === 'registrations' && (
               <motion.div 
                 key="registrations"
@@ -478,19 +461,6 @@ export default function App() {
                 className="min-h-full"
               >
                 <Integrations />
-              </motion.div>
-            )}
-
-            {currentView === 'polls' && (
-               <motion.div 
-                key="polls"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="min-h-full"
-              >
-                <Polls />
               </motion.div>
             )}
 
