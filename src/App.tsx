@@ -33,7 +33,6 @@ import WebinarsList from './components/WebinarsList';
 import Registrations from './components/Registrations';
 import Attendees from './components/Attendees';
 import EmailCampaigns from './components/EmailCampaigns';
-import Chat from './components/Chat';
 import Integrations from './components/Integrations';
 import Analytics from './components/Analytics';
 import EvergreenCampaigns from './components/EvergreenCampaigns';
@@ -46,18 +45,44 @@ import MarketerRegistration from './components/MarketerRegistration';
 import { Repeat } from 'lucide-react';
 import { useFirestore } from './hooks/useFirestore';
 
-export type ViewState = 'dashboard' | 'webinars' | 'create-webinar' | 'registrations' | 'attendees' | 'analytics' | 'email' | 'evergreen' | 'chat' | 'integrations' | 'team' | 'settings';
+export type ViewState = 'dashboard' | 'webinars' | 'create-webinar' | 'registrations' | 'attendees' | 'analytics' | 'email' | 'evergreen' | 'integrations' | 'team' | 'settings';
 
 export default function App() {
   const [user, setUser] = useState<{ role: 'admin' | 'marketer'; email: string; name: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [publicView, setPublicView] = useState<'login' | 'register' | 'register-marketer' | 'webinar-room'>('login');
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [currentView, setCurrentView] = useState<ViewState>('dashboard');
+  const validViews: ViewState[] = ['dashboard', 'webinars', 'create-webinar', 'registrations', 'attendees', 'analytics', 'email', 'evergreen', 'integrations', 'team', 'settings'];
+  
+  const [currentView, setCurrentView] = useState<ViewState>(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.replace('#', '') as ViewState;
+      if (validViews.includes(hash)) return hash;
+    }
+    return 'dashboard';
+  });
+  
   const [showNotifications, setShowNotifications] = useState(false);
   
   const { data: notifications, updateDocument } = useFirestore<any>('notifications');
   const unreadCount = notifications.filter((n: any) => !n.read).length;
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '') as ViewState;
+      if (validViews.includes(hash)) {
+        setCurrentView(hash);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    if (window.location.hash.replace('#', '') !== currentView) {
+      window.location.hash = currentView;
+    }
+  }, [currentView]);
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
@@ -87,10 +112,11 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (user?.role === 'admin') {
-      setCurrentView('dashboard');
-    } else if (user?.role === 'marketer') {
-      setCurrentView('dashboard');
+    if (user && typeof window !== 'undefined') {
+      const hash = window.location.hash.replace('#', '') as ViewState;
+      if (!validViews.includes(hash)) {
+        setCurrentView('dashboard');
+      }
     }
   }, [user]);
 
@@ -145,7 +171,6 @@ export default function App() {
       { id: 'registrations', label: 'Registrations', icon: Users },
       { id: 'analytics', label: 'Analytics', icon: BarChart3 },
       { id: 'email', label: 'Automations', icon: Mail },
-      { id: 'chat', label: 'Live Chat Simulant', icon: MessageSquare },
       { id: 'settings', label: 'Settings', icon: Settings },
     ];
   }
@@ -438,19 +463,6 @@ export default function App() {
               </motion.div>
             )}
 
-            {currentView === 'chat' && (
-               <motion.div 
-                key="chat"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="min-h-full"
-              >
-                <Chat />
-              </motion.div>
-            )}
-            
             {currentView === 'integrations' && (
                <motion.div 
                 key="integrations"

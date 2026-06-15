@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { TIMEZONES } from '../lib/timezones';
 import { 
   Video, Calendar, Clock, Rocket, ArrowLeft, Loader2, Link as LinkIcon, 
-  Camera, CheckCircle2, ChevronRight, Settings, Users, Mail, Palette
+  Camera, CheckCircle2, ChevronRight, Settings, Users, Mail, Palette, MessageSquare
 } from 'lucide-react';
 import { useFirestore } from '../hooks/useFirestore';
 
@@ -11,7 +11,7 @@ export default function CreateWebinar({ onCancel }: { onCancel: () => void }) {
   const { addDocument } = useFirestore<any>('webinars');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const totalSteps = 4;
+  const totalSteps = 5;
   
   // Form state
   const [title, setTitle] = useState('');
@@ -251,8 +251,55 @@ export default function CreateWebinar({ onCancel }: { onCancel: () => void }) {
             )}
 
             {step === 4 && (
-              <motion.div 
+               <motion.div 
                 key="step4"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6"
+              >
+                 <div>
+                  <h2 className="text-2xl font-display font-semibold mb-2">Live Chat Simulation</h2>
+                  <p className="text-slate-500 dark:text-zinc-400 mb-8">Design automated chat sequences that run during your webinar.</p>
+                </div>
+                
+                <div className="space-y-4">
+                   <div className="p-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl flex items-start gap-4">
+                      <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
+                         <MessageSquare className="w-6 h-6" />
+                      </div>
+                      <div>
+                         <h3 className="font-semibold text-slate-900 dark:text-white mb-1">Enable Simulated Chat</h3>
+                         <p className="text-sm text-slate-500 dark:text-zinc-400 mb-4">Automatically send pre-written messages at specific times to increase engagement.</p>
+                         <button className="px-4 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors">
+                           Configure Messages
+                         </button>
+                      </div>
+                   </div>
+
+                   <div className="p-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl">
+                      <div className="space-y-3">
+                         <div className="flex items-center gap-3">
+                            <input type="checkbox" id="auto-reply" className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" defaultChecked />
+                            <label htmlFor="auto-reply" className="text-sm font-medium text-slate-700 dark:text-zinc-300">
+                              Allow virtual attendees to auto-reply to real users
+                            </label>
+                         </div>
+                         <div className="flex items-center gap-3">
+                            <input type="checkbox" id="dynamic-names" className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" defaultChecked />
+                            <label htmlFor="dynamic-names" className="text-sm font-medium text-slate-700 dark:text-zinc-300">
+                              Dynamically change simulated names based on user geolocation
+                            </label>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 5 && (
+              <motion.div 
+                key="step5"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
