@@ -133,7 +133,7 @@ export default function EvergreenCampaigns() {
                 <div className="flex gap-2">
                   <input 
                     readOnly 
-                    value={`https://webinars.salecrib.com/reg/${linksModalCampaign.slug}`} 
+                    value={`https://salecrib.com/webinar/reg/${linksModalCampaign.slug}`} 
                     className="flex-1 px-3 py-2 bg-slate-50 dark:bg-zinc-800 border-none rounded-lg text-sm text-slate-600 dark:text-zinc-400 outline-none focus:ring-2 focus:ring-indigo-500/50"
                   />
                   <button className="px-3 py-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:hover:bg-indigo-500/20 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
@@ -150,7 +150,7 @@ export default function EvergreenCampaigns() {
                    <textarea 
                      readOnly 
                      rows={3} 
-                     value={`<iframe src="https://webinars.salecrib.com/reg/${linksModalCampaign.slug}/embed" width="100%" height="450px" frameborder="0"></iframe>`}
+                     value={`<iframe src="https://salecrib.com/webinar/reg/${linksModalCampaign.slug}/embed" width="100%" height="450px" frameborder="0"></iframe>`}
                      className="w-full px-4 py-3 bg-slate-950 text-slate-300 font-mono text-xs rounded-lg border border-slate-800 outline-none resize-none focus:border-indigo-500/50"
                    />
                    <button className="absolute top-2 right-2 p-1.5 text-slate-400 hover:text-white bg-slate-900 border border-slate-700 rounded-md transition-colors">

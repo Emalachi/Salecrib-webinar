@@ -68,8 +68,8 @@ export default function App() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const path = window.location.pathname;
-      if (path.startsWith('/reg/')) {
-        const slug = path.split('/reg/')[1];
+      if (path.startsWith('/webinar/reg/')) {
+        const slug = path.split('/webinar/reg/')[1];
         if (slug) {
           setCurrentRegSlug(slug);
           setIsExternalRoute(true);
