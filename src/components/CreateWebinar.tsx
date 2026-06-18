@@ -967,7 +967,7 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
                           LIVE
                         </div>
                         <div className="px-3 py-1 bg-black/40 text-white rounded-full text-xs font-medium backdrop-blur-md flex items-center gap-2">
-                          <Users className="w-3 h-3" /> 1,248
+                          <Users className="w-3 h-3" /> {peakAttendees.toLocaleString()}
                         </div>
                      </div>
                      <img src="https://images.unsplash.com/photo-1540317580384-e5d43616b9aa?auto=format&fit=crop&w=1600&q=80" alt="Webinar" className="w-full h-full object-cover opacity-80" />

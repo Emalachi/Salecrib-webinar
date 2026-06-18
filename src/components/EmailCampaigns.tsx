@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Mail, ArrowRight, MousePointerClick, Eye, RefreshCw, Plus, MoreVertical, PlayCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useFirestore } from '../hooks/useFirestore';
@@ -6,6 +6,22 @@ import { useFirestore } from '../hooks/useFirestore';
 export default function EmailCampaigns() {
   const { data: campaigns, loading, error, addDocument, deleteDocument } = useFirestore<any>('email_campaigns');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  const { emailsSent, avgOpens, avgClicks } = useMemo(() => {
+    let eSent = 0, tOpens = 0, tClicks = 0, cCount = 0;
+    campaigns?.forEach((c: any) => {
+      eSent += c.sent || 0;
+      if (c.opens) tOpens += parseInt(c.opens) || 0;
+      if (c.clicks) tClicks += parseInt(c.clicks) || 0;
+      cCount++;
+    });
+
+    return { 
+      emailsSent: eSent,
+      avgOpens: cCount > 0 ? (tOpens / cCount).toFixed(1) : 0,
+      avgClicks: cCount > 0 ? (tClicks / cCount).toFixed(1) : 0
+    };
+  }, [campaigns]);
 
   const addCampaign = () => {
     addDocument({
@@ -32,9 +48,9 @@ export default function EmailCampaigns() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-         <Stats title="Emails Sent This Month" value="45,230" icon={Mail} />
-         <Stats title="Avg. Open Rate" value="62.4%" icon={Eye} />
-         <Stats title="Avg. Click Rate" value="18.2%" icon={MousePointerClick} />
+         <Stats title="Emails Sent This Month" value={loading ? "..." : emailsSent.toLocaleString()} icon={Mail} />
+         <Stats title="Avg. Open Rate" value={loading ? "..." : (campaigns?.length ? `${avgOpens}%` : 'Not tracked yet')} icon={Eye} />
+         <Stats title="Avg. Click Rate" value={loading ? "..." : (campaigns?.length ? `${avgClicks}%` : 'Not tracked yet')} icon={MousePointerClick} />
       </div>
 
       <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/80 rounded-xl shadow-sm overflow-hidden text-sm">

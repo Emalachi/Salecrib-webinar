@@ -49,7 +49,7 @@ export default function Registrations() {
           </div>
           
           <div className="text-sm text-slate-500">
-            Showing <span className="font-medium text-slate-900 dark:text-white">1 - {filteredRegistrations.length}</span> of <span className="font-medium text-slate-900 dark:text-white">4,230</span>
+            Showing <span className="font-medium text-slate-900 dark:text-white">1 - {filteredRegistrations.length}</span> of <span className="font-medium text-slate-900 dark:text-white">{registrations?.length || 0}</span>
           </div>
         </div>
 

@@ -12,6 +12,24 @@ export default function Attendees() {
            (attendee.email || '').toLowerCase().includes(searchQuery.toLowerCase());
   });
 
+  const totalAttendees = attendees.length;
+  let totalWatchMins = 0;
+  let totalCompletion = 0;
+  let highlyEngaged = 0;
+
+  attendees.forEach((a: any) => {
+    if (a.watchTime) {
+       const m = parseInt(a.watchTime.replace(/[^0-9]/g, ''));
+       if (!isNaN(m)) totalWatchMins += m;
+    }
+    const comp = a.completion || 0;
+    totalCompletion += comp;
+    if (comp > 80) highlyEngaged++;
+  });
+
+  const avgWatchMins = totalAttendees > 0 ? Math.round(totalWatchMins / totalAttendees) : 0;
+  const avgCompletion = totalAttendees > 0 ? Math.round(totalCompletion / totalAttendees) : 0;
+
   return (
     <div className="p-6 md:p-8 max-w-[1600px] mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -22,10 +40,10 @@ export default function Attendees() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-         <Stats title="Total Attendees" value="1,850" desc="Across all webinars" />
-         <Stats title="Avg. Watch Time" value="45m" desc="Target: 60m" />
-         <Stats title="Completion Rate" value="68%" desc="+5% from last month" />
-         <Stats title="Highly Engaged" value="420" desc=">80% watch time" />
+         <Stats title="Total Attendees" value={loading ? "..." : totalAttendees.toString()} desc="Across all webinars" />
+         <Stats title="Avg. Watch Time" value={loading ? "..." : (totalAttendees > 0 ? `${avgWatchMins}m` : "Not tracked yet")} desc={totalAttendees > 0 ? "Target: 60m" : "—"} />
+         <Stats title="Completion Rate" value={loading ? "..." : (totalAttendees > 0 ? `${avgCompletion}%` : "Not tracked yet")} desc={totalAttendees > 0 ? "Average across viewers" : "—"} />
+         <Stats title="Highly Engaged" value={loading ? "..." : highlyEngaged.toString()} desc={totalAttendees > 0 ? ">80% watch time" : "—"} />
       </div>
 
       <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/80 rounded-xl shadow-sm overflow-hidden flex flex-col">

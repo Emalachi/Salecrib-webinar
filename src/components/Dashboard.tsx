@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   ArrowUpRight, 
   ArrowDownRight, 
@@ -15,19 +15,90 @@ import { cn } from '../lib/utils';
 import type { ViewState } from '../App';
 import { useFirestore } from '../hooks/useFirestore';
 
-const data = [
-  { name: 'Mon', registrations: 400, attendees: 240, revenue: 2400 },
-  { name: 'Tue', registrations: 300, attendees: 139, revenue: 2210 },
-  { name: 'Wed', registrations: 200, attendees: 980, revenue: 2290 },
-  { name: 'Thu', registrations: 278, attendees: 390, revenue: 2000 },
-  { name: 'Fri', registrations: 189, attendees: 480, revenue: 2181 },
-  { name: 'Sat', registrations: 239, attendees: 380, revenue: 2500 },
-  { name: 'Sun', registrations: 349, attendees: 430, revenue: 2100 },
-];
-
 export default function Dashboard({ onNavigate }: { onNavigate: (view: ViewState) => void }) {
   const [dateRange, setDateRange] = useState('Last 7 Days');
   const { data: notifications, loading: notifLoading } = useFirestore<any>('notifications');
+  const { data: registrations, loading: regLoading } = useFirestore<any>('registrations');
+  const { data: attendees, loading: attLoading } = useFirestore<any>('attendees');
+
+  const { currentRegs, priorRegs, currentAtts, priorAtts, avgWatchT, chartData } = useMemo(() => {
+    let days = 7;
+    if (dateRange === 'Today') days = 1;
+    else if (dateRange === '30 Days') days = 30;
+
+    const now = Date.now();
+    const periodMs = days * 24 * 60 * 60 * 1000;
+    const currentStart = now - periodMs;
+    const priorStart = currentStart - periodMs;
+
+    let currentRegs = 0, priorRegs = 0;
+    let currentAtts = 0, priorAtts = 0;
+    let totalWatchMins = 0;
+
+    const buckets: Record<string, { registrations: number, attendees: number }> = {};
+    if (days === 1) {
+      for (let i = 0; i < 24; i += 3) {
+        const d = new Date(now - (23 - i) * 60 * 60 * 1000);
+        buckets[`${d.getHours()}:00`] = { registrations: 0, attendees: 0 };
+      }
+    } else {
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(now - i * 24 * 60 * 60 * 1000);
+        buckets[d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })] = { registrations: 0, attendees: 0 };
+      }
+    }
+
+    const bucketKeys = Object.keys(buckets);
+
+    registrations?.forEach((r: any) => {
+      const ts = r.createdAt || 0;
+      if (ts >= currentStart) {
+        currentRegs++;
+        const d = new Date(ts);
+        const dayKey = days === 1 ? `${Math.floor(d.getHours() / 3) * 3}:00` : d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+        if (buckets[dayKey]) buckets[dayKey].registrations++;
+      } else if (ts >= priorStart) {
+        priorRegs++;
+      }
+    });
+
+    attendees?.forEach((a: any) => {
+      const ts = a.createdAt || 0;
+      if (ts >= currentStart) {
+        currentAtts++;
+        if (a.watchTime) {
+          const m = parseInt(a.watchTime.replace(/[^0-9]/g, ''));
+          if (!isNaN(m)) totalWatchMins += m;
+        }
+        const d = new Date(ts);
+        const dayKey = days === 1 ? `${Math.floor(d.getHours() / 3) * 3}:00` : d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+        if (buckets[dayKey]) buckets[dayKey].attendees++;
+      } else if (ts >= priorStart) {
+        priorAtts++;
+      }
+    });
+
+    const data = bucketKeys.map(k => ({
+      name: k,
+      registrations: buckets[k].registrations,
+      attendees: buckets[k].attendees
+    }));
+
+    const avgWatchT = currentAtts > 0 ? Math.round(totalWatchMins / currentAtts) : 0;
+
+    return { currentRegs, priorRegs, currentAtts, priorAtts, chartData: data, avgWatchT };
+  }, [registrations, attendees, dateRange]);
+
+  const calcChange = (curr: number, prior: number) => {
+    if (prior === 0) return curr === 0 ? "0%" : "—";
+    const percent = ((curr - prior) / prior) * 100;
+    return `${percent > 0 ? '+' : ''}${percent.toFixed(1)}%`;
+  };
+
+  const regChange = calcChange(currentRegs, priorRegs);
+  const attChange = calcChange(currentAtts, priorAtts);
+  
+  const loading = regLoading || attLoading;
 
   return (
     <div className="p-6 md:p-8 lg:p-12 max-w-[1200px] mx-auto space-y-8 lg:space-y-12">
@@ -55,10 +126,10 @@ export default function Dashboard({ onNavigate }: { onNavigate: (view: ViewState
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Registrations" value="4,230" change="+12.5%" trend="up" icon={Users} />
-        <StatCard title="Live Attendees" value="1,850" change="+4.2%" trend="up" icon={PlayCircle} />
-        <StatCard title="Avg. Watch Time" value="42m 15s" change="-2.1%" trend="down" icon={Clock} />
-        <StatCard title="Revenue Generated" value="$18,240" change="+24.8%" trend="up" icon={DollarSign} />
+        <StatCard title="Total Registrations" value={loading ? "..." : currentRegs.toString()} change={regChange} trend={regChange.startsWith('-') ? 'down' : 'up'} icon={Users} />
+        <StatCard title="Live Attendees" value={loading ? "..." : currentAtts.toString()} change={attChange} trend={attChange.startsWith('-') ? 'down' : 'up'} icon={PlayCircle} />
+        <StatCard title="Avg. Watch Time" value={loading ? "..." : (currentAtts > 0 ? `${avgWatchT}m` : "Not tracked yet")} change="—" trend="up" icon={Clock} />
+        <StatCard title="Revenue Generated" value="Not tracked yet" change="—" trend="up" icon={DollarSign} /> {/* Revenue requires transaction field tracking on registrations/offers */}
       </div>
 
       <div className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800/80 rounded-2xl p-6 lg:p-8 shadow-sm">
@@ -76,7 +147,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (view: ViewState
         </div>
         <div className="h-[350px] lg:h-[400px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorReg" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2}/>
