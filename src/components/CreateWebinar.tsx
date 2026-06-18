@@ -332,9 +332,10 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
-              >
-                 <div>
+                className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8"
+               >
+                 <div className="space-y-6">
+                  <div>
                   <h2 className="text-2xl font-display font-semibold mb-2">Live Chat Simulation</h2>
                   <p className="text-slate-500 dark:text-zinc-400 mb-8">Design automated chat sequences that run during your webinar.</p>
                 </div>
@@ -398,6 +399,63 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
                      </motion.div>
                    )}
                 </div>
+              </div>
+
+                 <div className="hidden lg:flex flex-col items-center pt-8 lg:pt-0">
+                    <div className="flex items-center justify-between w-full mb-4">
+                      <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider text-center w-full">Mobile Preview</span>
+                    </div>
+                    <div className="w-[300px] h-[600px] bg-slate-900 rounded-[2.5rem] shadow-2xl border-[10px] border-slate-900 relative overflow-hidden flex flex-col">
+                      <div className="absolute top-0 inset-x-0 h-6 bg-slate-900 z-50 rounded-b-2xl mx-16"></div>
+                      
+                      <div className="w-full aspect-video bg-black relative flex items-center justify-center shrink-0">
+                        {videoLink ? (
+                           <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-zinc-500 text-xs text-center p-4">
+                             Video {videoLink.substring(0, 15)}...
+                           </div>
+                        ) : (
+                           <PlayCircle className="w-10 h-10 text-white/50" />
+                        )}
+                        <div className="absolute bottom-2 left-2 flex items-center gap-2">
+                           <div className="px-2 py-0.5 bg-rose-600 text-white text-[10px] font-bold rounded-sm uppercase tracking-wider flex items-center gap-1">
+                             <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></div> Live
+                           </div>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 bg-white dark:bg-zinc-950 flex flex-col min-h-0 relative">
+                        <div className="p-3 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between bg-white dark:bg-zinc-950 shrink-0">
+                           <h4 className="font-semibold text-sm text-slate-900 dark:text-white">Live Chat</h4>
+                           <span className="text-xs text-slate-500">241 online</span>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-3 space-y-3 bg-slate-50 dark:bg-zinc-950/50 flex flex-col">
+                          {enableChat ? (
+                             [ { user: 'System', text: 'Welcome to the room!', isSystem: true, time: '10:00 AM' }, ...chatMessages.map((m: any) => ({ user: 'Attendee', text: m.text, isSystem: false, time: m.time })) ].map((msg: any, i: number) => (
+                               <div key={i} className="flex flex-col">
+                                 <div className="flex items-baseline gap-2 mb-0.5">
+                                   <span className="font-medium text-[10px] text-slate-900 dark:text-white">{msg.user}</span>
+                                   <span className="text-[9px] text-slate-400">{msg.time}</span>
+                                 </div>
+                                 <div className={`p-2 rounded-lg text-xs border inline-block max-w-[85%] ${msg.isSystem ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : 'bg-white border-slate-200 text-slate-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-300'}`}>
+                                   {msg.text}
+                                 </div>
+                               </div>
+                             ))
+                          ) : (
+                             <div className="m-auto flex flex-col items-center justify-center text-slate-400 space-y-2 py-8">
+                               <MessageSquare className="w-8 h-8 opacity-20" />
+                               <p className="text-xs">Chat is disabled</p>
+                             </div>
+                          )}
+                        </div>
+                        <div className="p-3 border-t border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 shrink-0">
+                           <div className="w-full bg-slate-100 dark:bg-zinc-900 rounded-full h-8 flex items-center px-3">
+                             <span className="text-xs text-slate-400">Type a message...</span>
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+                 </div>
               </motion.div>
             )}
 
