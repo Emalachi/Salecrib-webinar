@@ -63,9 +63,88 @@ function WebhooksPanel() {
     </div>
   )
 }
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { db, auth, functions } from '../lib/firebase';
+import { useEffect, useState as reactUseState } from 'react';
+
 function EmailAPIPanel() {
-  const [provider, setProvider] = useState('sendgrid');
-  const [gmailAccounts, setGmailAccounts] = useState([{ address: '', password: '' }]);
+  const [provider, setProvider] = reactUseState('sendgrid');
+  const [apiKey, setApiKey] = reactUseState('');
+  const [fromName, setFromName] = reactUseState('');
+  const [fromEmail, setFromEmail] = reactUseState('');
+  
+  // SMTP specific
+  const [host, setHost] = reactUseState('');
+  const [port, setPort] = reactUseState(587);
+  const [username, setUsername] = reactUseState('');
+  const [password, setPassword] = reactUseState('');
+
+  const [saving, setSaving] = reactUseState(false);
+  const [testing, setTesting] = reactUseState(false);
+  
+  const [gmailAccounts, setGmailAccounts] = reactUseState([{ address: '', password: '' }]);
+
+  useEffect(() => {
+    async function loadSettings() {
+      if (!auth.currentUser) return;
+      const docRef = doc(db, 'platform_settings', auth.currentUser.uid);
+      const snapshot = await getDoc(docRef);
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data.provider) setProvider(data.provider);
+        if (data.apiKey) setApiKey(data.apiKey);
+        if (data.fromName) setFromName(data.fromName);
+        if (data.fromEmail) setFromEmail(data.fromEmail);
+        if (data.host) setHost(data.host);
+        if (data.port) setPort(data.port);
+        if (data.username) setUsername(data.username);
+        if (data.password) setPassword(data.password);
+      }
+    }
+    loadSettings();
+  }, []);
+
+  const handleSave = async () => {
+    if (!auth.currentUser) return;
+    setSaving(true);
+    try {
+      const docRef = doc(db, 'platform_settings', auth.currentUser.uid);
+      await setDoc(docRef, {
+        provider,
+        apiKey,
+        fromName,
+        fromEmail,
+        host,
+        port,
+        username,
+        password,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      alert("Settings saved successfully.");
+    } catch (err: any) {
+      alert("Failed to save: " + err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTest = async () => {
+    if (!auth.currentUser) return;
+    const testEmail = prompt("Enter email address to send test to:");
+    if (!testEmail) return;
+    
+    setTesting(true);
+    try {
+      const sendTestEmail = httpsCallable(functions, 'sendTestEmail');
+      await sendTestEmail({ to: testEmail });
+      alert("Test email sent!");
+    } catch (err: any) {
+      alert("Test failed: " + err.message);
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const updateGmailAccount = (index: number, field: 'address' | 'password', value: string) => {
     const newAccounts = [...gmailAccounts];
@@ -113,6 +192,8 @@ function EmailAPIPanel() {
             <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">API Key</label>
             <input 
               type="password"
+              value={apiKey}
+              onChange={e => setApiKey(e.target.value)}
               placeholder="Enter your API key"
               className="w-full px-4 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm font-mono"
             />
@@ -121,59 +202,37 @@ function EmailAPIPanel() {
 
         {provider === 'gmail' && (
           <div className="space-y-4">
-            {gmailAccounts.map((account, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-4 relative bg-slate-50 dark:bg-zinc-900/50 p-4 border border-slate-200 dark:border-zinc-800 rounded-xl">
-                {gmailAccounts.length > 1 && (
-                  <button 
-                    onClick={() => removeGmailAccount(index)}
-                    className="absolute -top-2 -right-2 p-1 bg-white dark:bg-zinc-800 text-slate-400 hover:text-red-500 border border-slate-200 dark:border-zinc-700 rounded-full shadow-sm transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                )}
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">Gmail Address {index + 1}</label>
-                  <input 
-                    type="text"
-                    value={account.address}
-                    onChange={(e) => updateGmailAccount(index, 'address', e.target.value)}
-                    placeholder="you@gmail.com"
-                    className="w-full px-4 py-2 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">App Password</label>
-                  <input 
-                    type="password"
-                    value={account.password}
-                    onChange={(e) => updateGmailAccount(index, 'password', e.target.value)}
-                    placeholder="16-digit app password"
-                    className="w-full px-4 py-2 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm font-mono"
-                  />
-                  {index === 0 && (
-                    <p className="mt-1 text-xs text-slate-500">
-                      Enable 2-Step Verification and create an App Password.
-                    </p>
-                  )}
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative bg-slate-50 dark:bg-zinc-900/50 p-4 border border-slate-200 dark:border-zinc-800 rounded-xl">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">Gmail Address</label>
+                <input 
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="you@gmail.com"
+                  className="w-full px-4 py-2 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm font-mono"
+                />
               </div>
-            ))}
-
-            {gmailAccounts.length < 2 && (
-              <button 
-                onClick={addGmailAccount}
-                className="flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
-              >
-                <Plus className="w-4 h-4" /> Add Fallback Gmail Account
-              </button>
-            )}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">App Password</label>
+                <input 
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="16-digit app password"
+                  className="w-full px-4 py-2 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm font-mono"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Enable 2-Step Verification and create an App Password.
+                </p>
+              </div>
+            </div>
 
             <div className="bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-lg p-3">
               <p className="text-sm text-amber-800 dark:text-amber-300 flex items-start gap-2">
                 <span className="shrink-0 mt-0.5">⚠️</span>
                 <span>
                   <strong>Important Gmail Limits:</strong> Free Gmail accounts are limited to approx. 500 emails per 24 hours. Google Workspace accounts have a 2,000 email limit.
-                  {gmailAccounts.length > 1 && " The system will automatically switch to your fallback account when limits are reached."}
                 </span>
               </p>
             </div>
@@ -186,6 +245,8 @@ function EmailAPIPanel() {
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">Host</label>
               <input 
                 type="text"
+                value={host}
+                onChange={e => setHost(e.target.value)}
                 placeholder="smtp.example.com"
                 className="w-full px-4 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm font-mono"
               />
@@ -194,6 +255,8 @@ function EmailAPIPanel() {
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">Port</label>
               <input 
                 type="number"
+                value={port}
+                onChange={e => setPort(Number(e.target.value))}
                 placeholder="587"
                 className="w-full px-4 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm font-mono"
               />
@@ -202,6 +265,8 @@ function EmailAPIPanel() {
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">Username</label>
               <input 
                 type="text"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
                 placeholder="username"
                 className="w-full px-4 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm font-mono"
               />
@@ -210,6 +275,8 @@ function EmailAPIPanel() {
               <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">Password</label>
               <input 
                 type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
                 placeholder="password"
                 className="w-full px-4 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm font-mono"
               />
@@ -221,6 +288,8 @@ function EmailAPIPanel() {
           <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">From Name</label>
           <input 
             type="text"
+            value={fromName}
+            onChange={e => setFromName(e.target.value)}
             placeholder="SaleCrib Registration"
             className="w-full px-4 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm"
           />
@@ -230,17 +299,19 @@ function EmailAPIPanel() {
           <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-2">From Email</label>
           <input 
             type="email"
+            value={fromEmail}
+            onChange={e => setFromEmail(e.target.value)}
             placeholder="noreply@salecrib.com"
             className="w-full px-4 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm"
           />
         </div>
 
         <div className="pt-4 flex gap-3 border-t border-slate-200 dark:border-zinc-800 mt-6">
-          <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
-            Connect
+          <button onClick={handleSave} disabled={saving} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
+            {saving ? 'Saving...' : 'Connect'}
           </button>
-          <button className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-100 rounded-lg text-sm font-medium transition-colors">
-            Send Test
+          <button onClick={handleTest} disabled={testing} className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-100 rounded-lg text-sm font-medium transition-colors">
+            {testing ? 'Sending...' : 'Send Test'}
           </button>
         </div>
       </div>

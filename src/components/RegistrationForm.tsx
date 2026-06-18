@@ -1,17 +1,59 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, Mail, ShieldCheck, ArrowRight, Video, CheckCircle2, X } from 'lucide-react';
-import { useFirestore } from '../hooks/useFirestore';
+import { Calendar, Clock, User, Mail, ShieldCheck, ArrowRight, Video, CheckCircle2, X, AlertTriangle } from 'lucide-react';
 import { RenderBlock, DEFAULT_BLOCKS, Block } from './LandingPageBuilder';
+import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export default function RegistrationForm({ onComplete, slug }: { onComplete: () => void, slug?: string | null }) {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const { addDocument } = useFirestore<any>('registrations');
-  const { data: webinars } = useFirestore<any>('webinars');
   
-  const webinar = webinars?.find((w: any) => w.slug === slug) || null;
+  const [webinar, setWebinar] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    async function fetchWebinar() {
+      if (!slug) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const q = query(collection(db, 'webinars'), where('slug', '==', slug));
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+          setWebinar({ ...snapshot.docs[0].data(), id: snapshot.docs[0].id });
+        } else {
+          setErrorMsg("Webinar not found.");
+        }
+      } catch (err: any) {
+        console.error("Error loading webinar:", err);
+        setErrorMsg("Failed to load webinar details.");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchWebinar();
+  }, [slug]);
+
+  if (loading) {
+     return <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex items-center justify-center p-4 text-slate-500">Loading...</div>;
+  }
+
+  if (errorMsg && !webinar) {
+     return (
+       <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
+         <div className="max-w-md w-full bg-white dark:bg-zinc-900 rounded-2xl shadow-xl border border-slate-200 dark:border-zinc-800 p-8 text-center text-slate-600 dark:text-slate-400">
+           <AlertTriangle className="w-12 h-12 mx-auto text-rose-500 mb-4" />
+           <h2 className="text-xl font-bold mb-2 text-slate-900 dark:text-white">Oops!</h2>
+           <p>{errorMsg}</p>
+         </div>
+       </div>
+     );
+  }
+
   const title = webinar?.title || '10x Your Marketing Strategy Using Automated Funnels';
-  
   const blocks = webinar?.landingPageBlocks || DEFAULT_BLOCKS;
 
   if (isSubmitted) {
@@ -51,7 +93,7 @@ export default function RegistrationForm({ onComplete, slug }: { onComplete: () 
           <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between">
               <h2 className="text-xl font-bold">Reserve Your Seat</h2>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 dark:text-zinc-400 dark:hover:text-white transition-colors">
+              <button disabled={submitting} onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 dark:text-zinc-400 dark:hover:text-white transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -59,24 +101,38 @@ export default function RegistrationForm({ onComplete, slug }: { onComplete: () 
               <form 
                 onSubmit={async (e) => {
                   e.preventDefault();
+                  if (!webinar?.id || !webinar?.ownerUid) {
+                    alert("Cannot register: Webinar configuration is incomplete.");
+                    return;
+                  }
+                  
+                  setSubmitting(true);
                   const formData = new FormData(e.currentTarget);
                   const name = formData.get('name') as string;
                   const email = formData.get('email') as string;
+                  const sessionTime = formData.get('sessionTime') as string;
                   
                   if (name && email) {
                     try {
-                      await addDocument({
+                      await addDoc(collection(db, 'registrations'), {
                         name,
                         email,
-                        webinar: title,
+                        webinarId: webinar.id,
+                        webinar: webinar.title,
+                        ownerUid: webinar.ownerUid,
                         source: 'Organic',
                         date: new Date().toLocaleDateString(),
-                        createdAt: new Date().toISOString()
+                        createdAt: new Date().toISOString(), // Rule doesn't force timestamp type, just present, but since app uses string mostly let's stick with string, wait! Actually rule just says hasAll(['createdAt'])
+                        ...(sessionTime ? { sessionTime } : {}),
+                        status: 'registered'
                       });
                       setIsSubmitted(true);
                       setShowModal(false);
-                    } catch (err) {
+                    } catch (err: any) {
                       console.error("Failed to save registration:", err);
+                      alert(err?.message || "Failed to register. Please try again.");
+                    } finally {
+                      setSubmitting(false);
                     }
                   }
                 }} 
@@ -115,7 +171,7 @@ export default function RegistrationForm({ onComplete, slug }: { onComplete: () 
                     <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">Select Session</label>
                     <div className="relative">
                       <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                      <select required className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none">
+                      <select name="sessionTime" required className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none">
                         <option value="">Choose a time...</option>
                         {Array.from({length: 4}).map((_, i) => {
                           const date = new Date();

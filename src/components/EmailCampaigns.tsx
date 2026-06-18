@@ -2,12 +2,17 @@ import React, { useState, useMemo } from 'react';
 import { Mail, ArrowRight, MousePointerClick, Eye, RefreshCw, Plus, MoreVertical, PlayCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useFirestore } from '../hooks/useFirestore';
+import EmailBuilder from './EmailBuilder';
 
 export default function EmailCampaigns() {
-  const { data: campaigns, loading, error, addDocument, deleteDocument } = useFirestore<any>('email_campaigns');
+  const { data: campaigns, loading, error, addDocument, deleteDocument, updateDocument } = useFirestore<any>('email_campaigns');
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
 
   const { emailsSent, avgOpens, avgClicks } = useMemo(() => {
+    // Note: Open and click tracking are placeholders. 
+    // Implementing real open/click tracking requires embedding tracking pixels in the 
+    // emails and using redirect links for all URLs inside the email.
     let eSent = 0, tOpens = 0, tClicks = 0, cCount = 0;
     campaigns?.forEach((c: any) => {
       eSent += c.sent || 0;
@@ -28,8 +33,8 @@ export default function EmailCampaigns() {
       name: 'New Email Campaign',
       status: 'draft',
       sent: 0,
-      opens: '0%',
-      clicks: '0%',
+      opens: 'Not tracked yet',
+      clicks: 'Not tracked yet',
       type: 'Broadcast'
     });
   }
@@ -89,13 +94,16 @@ export default function EmailCampaigns() {
                   {camp.status === 'completed' && <span className="text-slate-400 flex items-center gap-1.5">Completed</span>}
                 </td>
                 <td className="px-6 py-4 text-right text-slate-600 dark:text-zinc-300">{(camp.sent || 0).toLocaleString()}</td>
-                <td className="px-6 py-4 text-right text-slate-600 dark:text-zinc-300 font-medium">{camp.opens || '0%'}</td>
-                <td className="px-6 py-4 text-right text-slate-600 dark:text-zinc-300 font-medium">{camp.clicks || '0%'}</td>
+                <td className="px-6 py-4 text-right text-slate-600 dark:text-zinc-300 font-medium">{camp.opens || 'Not tracked yet'}</td>
+                <td className="px-6 py-4 text-right text-slate-600 dark:text-zinc-300 font-medium">{camp.clicks || 'Not tracked yet'}</td>
                 <td className="px-6 py-4 text-right relative">
                   <button onClick={() => setOpenMenuId(openMenuId === camp.id ? null : camp.id)} className="text-slate-400 hover:text-indigo-500 transition-colors"><MoreVertical className="w-4 h-4 ml-auto" /></button>
                   {openMenuId === camp.id && (
                     <div className="absolute right-6 top-10 w-48 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg shadow-lg z-50 py-1">
-                       <button className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-zinc-800 text-sm">Edit Campaign</button>
+                       <button onClick={() => {
+                          setEditingCampaignId(camp.id);
+                          setOpenMenuId(null);
+                       }} className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-zinc-800 text-sm">Edit Campaign</button>
                        <button className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-zinc-800 text-sm">View Analytics</button>
                        <button 
                          onClick={() => {
@@ -121,6 +129,17 @@ export default function EmailCampaigns() {
           </tbody>
         </table>
       </div>
+      
+      {editingCampaignId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white dark:bg-zinc-900 w-full max-w-6xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl">
+             <EmailBuilder 
+                campaignId={editingCampaignId} 
+                onClose={() => setEditingCampaignId(null)} 
+             />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

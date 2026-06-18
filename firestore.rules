@@ -36,10 +36,9 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Shared / Admin Managed global settings or collections
+    // Admin Managed global settings or collections
     match /platform_settings/{settingId} {
-      allow read: if request.auth != null; // marketers need to read platform settings
-      allow write: if isAdmin();
+      allow read, write: if request.auth != null && (request.auth.uid == settingId || isAdmin());
     }
     
     match /templates/{templateId} {
@@ -48,14 +47,25 @@ service cloud.firestore {
     }
     // Webinars
     match /webinars/{webinarId} {
-      allow read, update, delete: if isOwner() || isAdmin();
+      allow read: if true;
+      allow update, delete: if isOwner() || isAdmin();
       allow create: if isCreatingWithOwnerUid() || isAdmin();
     }
 
     // Registrations
     match /registrations/{registrationId} {
       allow read, update, delete: if isOwner() || isAdmin();
-      allow create: if isCreatingWithOwnerUid() || isAdmin();
+      allow create: if isCreatingWithOwnerUid() || isAdmin() || (
+        request.resource.data.keys().hasAll(['name', 'email', 'webinarId', 'ownerUid', 'createdAt']) &&
+        request.resource.data.keys().hasOnly(['name', 'email', 'webinar', 'webinarId', 'ownerUid', 'createdAt', 'status', 'sessionTime', 'phone', 'source', 'date']) &&
+        request.resource.data.name is string &&
+        request.resource.data.name.size() > 0 &&
+        request.resource.data.email is string &&
+        request.resource.data.email.matches('.*@.*') &&
+        request.resource.data.webinarId is string &&
+        exists(/databases/$(database)/documents/webinars/$(request.resource.data.webinarId)) &&
+        request.resource.data.ownerUid == get(/databases/$(database)/documents/webinars/$(request.resource.data.webinarId)).data.ownerUid
+      );
     }
 
     // Attendees
