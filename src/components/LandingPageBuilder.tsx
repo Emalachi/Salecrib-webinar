@@ -389,22 +389,25 @@ export function RenderBlock({ block, onActionClick, webinar }: { block: Block; o
     }
 
     return (
-      <div className="py-20 px-8 bg-gradient-to-b from-indigo-900 to-slate-900 text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-indigo-950 opacity-50 mix-blend-overlay"></div>
-        <div className="relative z-10 max-w-3xl mx-auto space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-sm font-medium backdrop-blur-md mb-4">
-            <Calendar className="w-4 h-4" /> {dateDisplay}
+      <div className="py-24 px-8 bg-black text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/40 via-black to-black"></div>
+        <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] mix-blend-overlay"></div>
+        <div className="relative z-10 max-w-4xl mx-auto space-y-8 mt-12 mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-zinc-300 text-sm font-medium backdrop-blur-md mb-2 shadow-2xl">
+            <Calendar className="w-4 h-4 text-indigo-400" /> {dateDisplay}
           </div>
-          <h1 className="text-4xl md:text-5xl font-display font-bold text-white leading-tight">
+          <h1 className="text-5xl md:text-7xl font-display font-extrabold text-white leading-tight tracking-tight">
             {props.headline}
           </h1>
-          <p className="text-xl text-indigo-100 max-w-2xl mx-auto">
+          <p className="text-xl text-zinc-400 max-w-2xl mx-auto leading-relaxed">
             {props.subheadline}
           </p>
-          <div className="pt-8 text-center max-w-sm mx-auto">
-             <button onClick={onActionClick} className="w-full py-4 px-8 bg-white text-indigo-900 rounded-xl font-bold text-lg hover:shadow-xl transition-all shadow-indigo-500/20 active:scale-95">
+          <div className="pt-10 text-center max-w-sm mx-auto">
+             <button onClick={onActionClick} className="w-full py-5 px-8 bg-white text-black rounded-2xl font-bold text-lg hover:bg-zinc-200 transition-all shadow-[0_0_40px_rgba(255,255,255,0.15)] active:scale-95 group flex items-center justify-center gap-2">
                {props.buttonText}
+               <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
              </button>
+             <p className="text-zinc-600 mt-4 text-sm font-medium flex items-center justify-center gap-1.5"><ShieldCheck className="w-4 h-4" /> Secure, 1-Click Registration</p>
           </div>
         </div>
       </div>

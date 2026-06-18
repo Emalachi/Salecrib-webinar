@@ -79,7 +79,7 @@ export default function RegistrationForm({ onComplete, slug }: { onComplete: () 
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex flex-col font-sans">
+    <div className="min-h-screen bg-black flex flex-col font-sans">
       <div className="flex-1 flex flex-col w-full">
         {blocks.map((block: Block) => (
           <React.Fragment key={block.id}>
@@ -89,15 +89,16 @@ export default function RegistrationForm({ onComplete, slug }: { onComplete: () 
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between">
-              <h2 className="text-xl font-bold">Reserve Your Seat</h2>
-              <button disabled={submitting} onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 dark:text-zinc-400 dark:hover:text-white transition-colors">
-                <X className="w-5 h-5" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="w-full max-w-md bg-zinc-950 border border-zinc-800/80 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 relative">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500"></div>
+            <div className="p-8 border-b border-zinc-900 flex items-center justify-between">
+              <h2 className="text-2xl font-display font-bold text-white tracking-tight">Reserve Your Seat</h2>
+              <button disabled={submitting} onClick={() => setShowModal(false)} className="text-zinc-500 hover:text-white transition-colors bg-zinc-900 hover:bg-zinc-800 p-2 rounded-full">
+                <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="p-6 bg-slate-50 dark:bg-zinc-950/50">
+            <div className="p-8 bg-zinc-950/50">
               <form 
                 onSubmit={async (e) => {
                   e.preventDefault();
@@ -122,7 +123,7 @@ export default function RegistrationForm({ onComplete, slug }: { onComplete: () 
                         ownerUid: webinar.ownerUid,
                         source: 'Organic',
                         date: new Date().toLocaleDateString(),
-                        createdAt: new Date().toISOString(), // Rule doesn't force timestamp type, just present, but since app uses string mostly let's stick with string, wait! Actually rule just says hasAll(['createdAt'])
+                        createdAt: new Date().toISOString(),
                         ...(sessionTime ? { sessionTime } : {}),
                         status: 'registered'
                       });
@@ -136,47 +137,47 @@ export default function RegistrationForm({ onComplete, slug }: { onComplete: () 
                     }
                   }
                 }} 
-                className="space-y-5"
+                className="space-y-6"
               >
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">Full Name</label>
+                  <label className="block text-sm font-medium text-zinc-400 mb-2">Full Name</label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600" />
                     <input 
                       type="text" 
                       name="name"
                       required
                       placeholder="Jane Doe"
-                      className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                      className="w-full pl-12 pr-4 py-3.5 bg-black border border-zinc-800 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 font-medium transition-all focus:border-indigo-500/50"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">Email Address</label>
+                  <label className="block text-sm font-medium text-zinc-400 mb-2">Email Address</label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600" />
                     <input 
                       type="email" 
                       name="email"
                       required
                       placeholder="jane@company.com"
-                      className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
+                      className="w-full pl-12 pr-4 py-3.5 bg-black border border-zinc-800 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 font-medium transition-all focus:border-indigo-500/50"
                     />
                   </div>
                 </div>
 
                 {webinar?.isJitMode && (
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">Select Session</label>
+                    <label className="block text-sm font-medium text-zinc-400 mb-2">Select Session</label>
                     <div className="relative">
-                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                      <select name="sessionTime" required className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none">
+                      <Clock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-600" />
+                      <select name="sessionTime" required className="w-full pl-12 pr-4 py-3.5 bg-black border border-zinc-800 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 font-medium transition-all appearance-none cursor-pointer focus:border-indigo-500/50">
                         <option value="">Choose a time...</option>
                         {Array.from({length: 4}).map((_, i) => {
                           const date = new Date();
                           date.setMinutes(0, 0, 0);
-                          date.setHours(date.getHours() + 1 + i*3); // Next boundary, then +3h, +6h
+                          date.setHours(date.getHours() + 1 + i*3); 
                           const prefix = i === 0 ? "Today" : date.getDate() !== new Date().getDate() ? "Tomorrow" : "Today";
                           return (
                              <option key={i} value={date.toISOString()}>{prefix} at {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</option>
@@ -189,14 +190,15 @@ export default function RegistrationForm({ onComplete, slug }: { onComplete: () 
 
                 <button 
                   type="submit" 
-                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium shadow-lg shadow-indigo-600/20 transition-all flex items-center justify-center gap-2 group mt-2"
+                  disabled={submitting}
+                  className="w-full py-4 bg-white hover:bg-zinc-200 text-black rounded-xl font-bold text-lg shadow-[0_0_20px_rgba(255,255,255,0.1)] transition-all flex items-center justify-center gap-2 group mt-4 disabled:opacity-70"
                 >
-                  Watch Now For Free
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  {submitting ? 'Reserving...' : 'Watch Now For Free'}
+                  {!submitting && <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />}
                 </button>
 
-                <div className="flex items-center justify-center gap-2 pt-4 border-t border-slate-200 dark:border-zinc-800 text-xs text-slate-500 dark:text-zinc-500">
-                  <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                <div className="flex items-center justify-center gap-2 pt-6 text-xs text-zinc-600">
+                  <ShieldCheck className="w-4 h-4 text-zinc-500" />
                   <span>Your information is secure. Unsubscribe at any time.</span>
                 </div>
               </form>
