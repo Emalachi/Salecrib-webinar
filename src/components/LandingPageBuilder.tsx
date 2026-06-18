@@ -4,7 +4,7 @@ import { useFirestore } from '../hooks/useFirestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../lib/firebase';
 import { 
-  ArrowLeft, Save, MousePointer2, Type, Image as ImageIcon, Video, 
+  ArrowLeft, ArrowRight, Save, MousePointer2, Type, Image as ImageIcon, Video, 
   List, User, Calendar, Layout, Trash2, Plus, GripVertical, CheckCircle2, ChevronRight, Settings2, ShieldCheck, PlayCircle, Loader2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
