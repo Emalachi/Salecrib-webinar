@@ -28,7 +28,6 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
   const [enableChat, setEnableChat] = useState(true);
   const [autoReply, setAutoReply] = useState(true);
   const [dynamicNames, setDynamicNames] = useState(true);
-  const [showChatConfig, setShowChatConfig] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [chatMessages, setChatMessages] = useState([
@@ -41,7 +40,6 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
 
   // Offers State
   const [offersEnabled, setOffersEnabled] = useState(false);
-  const [showOffersConfig, setShowOffersConfig] = useState(false);
   const [offers, setOffers] = useState([
     { id: 1, title: 'Special Course Bundle', popUpTime: '15:00', durationSeconds: 300, url: 'https://example.com/checkout', buttonText: 'Claim Now' }
   ]);
@@ -534,15 +532,122 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
                           </button>
                         </div>
                         <p className="text-sm text-slate-500 dark:text-zinc-400 mb-4">Display clickable product offers or CTAs at specific times.</p>
-                        <button 
-                          onClick={() => setShowOffersConfig(true)}
-                          disabled={!offersEnabled}
-                          className="px-4 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
-                        >
-                          Configure Offers
-                        </button>
-                      </div>
+                        </div>
                     </div>
+
+                    {offersEnabled && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="space-y-6"
+                      >
+                       <div className="p-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl space-y-6">
+                        {/* Existing Offers */}
+                        {offers.length > 0 && (
+                          <div className="space-y-3">
+                            <h4 className="text-sm font-semibold text-slate-900 dark:text-zinc-300">Active Offers</h4>
+                            <div className="space-y-3">
+                              {offers.map((offer) => (
+                                <div key={offer.id} className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl relative group">
+                                  <button 
+                                    onClick={() => removeOffer(offer.id)}
+                                    className="absolute top-4 right-4 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded"
+                                  >
+                                    ✕
+                                  </button>
+                                  <div className="flex gap-4">
+                                    <div className="text-center bg-slate-50 dark:bg-zinc-950 p-2 rounded-lg border border-slate-100 dark:border-zinc-800 shrink-0 min-w-[80px]">
+                                      <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Time</div>
+                                      <div className="font-mono text-indigo-600 dark:text-indigo-400 font-medium">{offer.popUpTime}</div>
+                                      <div className="text-[10px] text-slate-500 mt-0.5">({offer.durationSeconds}s)</div>
+                                    </div>
+                                    <div className="flex-1 min-w-0 pr-8">
+                                      <h5 className="font-medium text-slate-900 dark:text-white truncate">{offer.title}</h5>
+                                      <a href={offer.url} target="_blank" rel="noreferrer" className="text-xs text-indigo-500 hover:text-indigo-600 truncate block mt-1">
+                                        {offer.url}
+                                      </a>
+                                      <div className="mt-2 inline-block px-3 py-1 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-medium rounded-full border border-rose-100 dark:border-rose-500/20">
+                                        Btn: {offer.buttonText}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Add New Offer */}
+                        <div className="p-5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl space-y-4">
+                          <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-1 border-b border-slate-100 dark:border-zinc-800 pb-2">Add New Offer</h4>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-medium text-slate-500 mb-1">Offer Title</label>
+                              <input 
+                                type="text" 
+                                placeholder="e.g. Masterclass Bundle" 
+                                value={newOfferTitle}
+                                onChange={e => setNewOfferTitle(e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-slate-500 mb-1">Target URL</label>
+                              <input 
+                                type="url" 
+                                placeholder="https://your-site.com/checkout" 
+                                value={newOfferUrl}
+                                onChange={e => setNewOfferUrl(e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-slate-500 mb-1">Trigger Time (MM:SS)</label>
+                              <input 
+                                type="text" 
+                                placeholder="45:00" 
+                                value={newOfferPopTime}
+                                onChange={e => setNewOfferPopTime(e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono" 
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-slate-500 mb-1">Duration (Seconds)</label>
+                              <input 
+                                type="number" 
+                                placeholder="300" 
+                                value={newOfferDurationSeconds}
+                                onChange={e => setNewOfferDurationSeconds(e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono" 
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <label className="block text-xs font-medium text-slate-500 mb-1">Button Text</label>
+                              <div className="flex gap-3">
+                                <input 
+                                  type="text" 
+                                  placeholder="Claim Offer" 
+                                  value={newOfferButtonText}
+                                  onChange={e => setNewOfferButtonText(e.target.value)}
+                                  className="flex-1 px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                                  onKeyDown={e => e.key === 'Enter' && handleAddOffer()}
+                                />
+                                <button 
+                                  onClick={handleAddOffer} 
+                                  disabled={!newOfferTitle || !newOfferPopTime || !newOfferUrl}
+                                  className="px-6 py-2 bg-slate-900 dark:bg-white dark:text-zinc-900 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                                >
+                                  Add
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                       </div>
+                      </motion.div>
+                    )}
                   </div>
                 </div>
 
@@ -673,220 +778,6 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
             )}
           </div>
         </div>
-
-        {/* Chat Config Modal */}
-        <AnimatePresence>
-          {showChatConfig && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col max-h-[80vh]"
-              >
-                <div className="p-6 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between">
-                  <h3 className="font-semibold text-lg">Configure Chat Messages</h3>
-                  <button onClick={() => setShowChatConfig(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                    ✕
-                  </button>
-                </div>
-                <div className="p-6 overflow-y-auto flex-1 bg-slate-50 dark:bg-zinc-950/50">
-                  <div className="space-y-4">
-                    <p className="text-sm text-slate-500">
-                      Pre-written messages allow you to simulate a lively chat environment for evergreen webinars, or prime the discussion for live webinars.
-                    </p>
-                    <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl space-y-3">
-                      {chatMessages.map((msg) => (
-                        <div key={msg.id} className="flex items-center justify-between group">
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs font-mono bg-slate-100 dark:bg-zinc-800 px-2 py-1 rounded text-slate-500">{msg.time}</span>
-                            <span className="text-sm font-medium">{msg.text}</span>
-                          </div>
-                          <button onClick={() => removeMessage(msg.id)} className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex gap-2">
-                       <input 
-                         type="text" 
-                         placeholder="00:00" 
-                         value={newMessageTime}
-                         onChange={e => setNewMessageTime(e.target.value)}
-                         className="w-20 px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500" 
-                       />
-                       <input 
-                         type="text" 
-                         placeholder="Type message..." 
-                         value={newMessageText}
-                         onChange={e => setNewMessageText(e.target.value)}
-                         onKeyDown={e => e.key === 'Enter' && handleAddMessage()}
-                         className="flex-1 px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" 
-                       />
-                       <button onClick={handleAddMessage} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
-                         Add
-                       </button>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4 border-t border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex justify-end">
-                  <button 
-                    onClick={() => setShowChatConfig(false)}
-                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
-                  >
-                    Done
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-
-        {/* Offers Config Modal */}
-        <AnimatePresence>
-          {showOffersConfig && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]"
-              >
-                <div className="p-6 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between">
-                  <h3 className="font-semibold text-lg flex items-center gap-2">
-                    <svg className="w-5 h-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" /></svg>
-                    Live Offers Configuration
-                  </h3>
-                  <button onClick={() => setShowOffersConfig(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                    ✕
-                  </button>
-                </div>
-                <div className="p-6 overflow-y-auto flex-1 bg-slate-50 dark:bg-zinc-950/50">
-                  <div className="space-y-6">
-                    <div>
-                      <p className="text-sm text-slate-500 mb-4">
-                        Configure offers that will display to attendees at specific moments during your webinar. Useful for driving sales to a product right when you mention it.
-                      </p>
-                    </div>
-
-                    {/* Existing Offers */}
-                    {offers.length > 0 && (
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-slate-700 dark:text-zinc-300">Active Offers</h4>
-                        <div className="space-y-3">
-                          {offers.map((offer) => (
-                            <div key={offer.id} className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl relative group">
-                              <button 
-                                onClick={() => removeOffer(offer.id)}
-                                className="absolute top-4 right-4 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded"
-                              >
-                                ✕
-                              </button>
-                              <div className="flex gap-4">
-                                <div className="text-center bg-slate-50 dark:bg-zinc-950 p-2 rounded-lg border border-slate-100 dark:border-zinc-800 shrink-0 min-w-[80px]">
-                                  <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Time</div>
-                                  <div className="font-mono text-indigo-600 dark:text-indigo-400 font-medium">{offer.popUpTime}</div>
-                                  <div className="text-[10px] text-slate-500 mt-0.5">({offer.durationSeconds}s)</div>
-                                </div>
-                                <div className="flex-1 min-w-0 pr-8">
-                                  <h5 className="font-medium text-slate-900 dark:text-white truncate">{offer.title}</h5>
-                                  <a href={offer.url} target="_blank" rel="noreferrer" className="text-xs text-indigo-500 hover:text-indigo-600 truncate block mt-1">
-                                    {offer.url}
-                                  </a>
-                                  <div className="mt-2 inline-block px-3 py-1 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-medium rounded-full border border-rose-100 dark:border-rose-500/20">
-                                    Btn: {offer.buttonText}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Add New Offer */}
-                    <div className="p-5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl space-y-4">
-                      <h4 className="text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1 border-b border-slate-100 dark:border-zinc-800 pb-2">Add New Offer</h4>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">Offer Title</label>
-                          <input 
-                            type="text" 
-                            placeholder="e.g. Masterclass Bundle" 
-                            value={newOfferTitle}
-                            onChange={e => setNewOfferTitle(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" 
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">Target URL</label>
-                          <input 
-                            type="url" 
-                            placeholder="https://your-site.com/checkout" 
-                            value={newOfferUrl}
-                            onChange={e => setNewOfferUrl(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" 
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">Trigger Time (MM:SS)</label>
-                          <input 
-                            type="text" 
-                            placeholder="45:00" 
-                            value={newOfferPopUpTime}
-                            onChange={e => setNewOfferPopUpTime(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono" 
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-slate-500 mb-1">Duration (Seconds)</label>
-                          <input 
-                            type="number" 
-                            placeholder="300" 
-                            value={newOfferDurationSeconds}
-                            onChange={e => setNewOfferDurationSeconds(e.target.value)}
-                            className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono" 
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <label className="block text-xs font-medium text-slate-500 mb-1">Button Text</label>
-                          <div className="flex gap-3">
-                            <input 
-                              type="text" 
-                              placeholder="Claim Offer" 
-                              value={newOfferButtonText}
-                              onChange={e => setNewOfferButtonText(e.target.value)}
-                              className="flex-1 px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" 
-                              onKeyDown={e => e.key === 'Enter' && handleAddOffer()}
-                            />
-                            <button 
-                              onClick={handleAddOffer} 
-                              disabled={!newOfferTitle || !newOfferPopUpTime || !newOfferUrl}
-                              className="px-6 py-2 bg-slate-900 dark:bg-white dark:text-zinc-900 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                            >
-                              Add
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-                <div className="p-4 border-t border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex justify-end">
-                  <button 
-                    onClick={() => setShowOffersConfig(false)}
-                    className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors"
-                  >
-                    Done
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
 
         {/* Room Preview Modal */}
         <AnimatePresence>
