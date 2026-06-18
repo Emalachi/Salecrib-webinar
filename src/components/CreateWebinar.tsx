@@ -398,50 +398,86 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
                              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${enableChat ? 'translate-x-5' : 'translate-x-1'}`} />
                            </button>
                          </div>
-                         <p className="text-sm text-slate-500 dark:text-zinc-400 mb-4">Automatically send pre-written messages at specific times to increase engagement.</p>
-                         <button 
-                           onClick={() => setShowChatConfig(true)}
-                           disabled={!enableChat}
-                           className="px-4 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm font-medium hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
-                         >
-                           Configure Messages
-                         </button>
-                      </div>
-                   </div>
+                          <p className="text-sm text-slate-500 dark:text-zinc-400 mb-4">Automatically send pre-written messages at specific times to increase engagement.</p>
+                       </div>
+                    </div>
 
-                   {enableChat && (
-                     <motion.div 
-                       initial={{ opacity: 0, height: 0 }}
-                       animate={{ opacity: 1, height: 'auto' }}
-                       className="p-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl"
-                     >
-                        <div className="space-y-3">
-                           <div className="flex items-center gap-3">
-                              <input 
-                                type="checkbox" id="auto-reply" 
-                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer" 
-                                checked={autoReply}
-                                onChange={(e) => setAutoReply(e.target.checked)} 
-                              />
-                              <label htmlFor="auto-reply" className="text-sm font-medium text-slate-700 dark:text-zinc-300 cursor-pointer">
-                                Allow virtual attendees to auto-reply to real users
-                              </label>
-                           </div>
-                           <div className="flex items-center gap-3">
-                              <input 
-                                type="checkbox" id="dynamic-names" 
-                                className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer" 
-                                checked={dynamicNames}
-                                onChange={(e) => setDynamicNames(e.target.checked)} 
-                              />
-                              <label htmlFor="dynamic-names" className="text-sm font-medium text-slate-700 dark:text-zinc-300 cursor-pointer">
-                                Dynamically change simulated names based on user geolocation
-                              </label>
-                           </div>
-                        </div>
-                     </motion.div>
-                   )}
-                </div>
+                    {enableChat && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        className="space-y-4 pt-4"
+                      >
+                         <div className="p-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl space-y-4">
+                            <div className="space-y-3 mb-6">
+                               <div className="flex items-center gap-3">
+                                  <input 
+                                    type="checkbox" id="auto-reply" 
+                                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer" 
+                                    checked={autoReply}
+                                    onChange={(e) => setAutoReply(e.target.checked)} 
+                                  />
+                                  <label htmlFor="auto-reply" className="text-sm font-medium text-slate-700 dark:text-zinc-300 cursor-pointer">
+                                    Allow virtual attendees to auto-reply to real users
+                                  </label>
+                               </div>
+                               <div className="flex items-center gap-3">
+                                  <input 
+                                    type="checkbox" id="dynamic-names" 
+                                    className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer" 
+                                    checked={dynamicNames}
+                                    onChange={(e) => setDynamicNames(e.target.checked)} 
+                                  />
+                                  <label htmlFor="dynamic-names" className="text-sm font-medium text-slate-700 dark:text-zinc-300 cursor-pointer">
+                                    Dynamically change simulated names based on user geolocation
+                                  </label>
+                               </div>
+                            </div>
+
+                            <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-2">Simulated Messages</h4>
+                            <div className="p-4 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl space-y-3 mb-4">
+                              {chatMessages.length === 0 && <p className="text-sm text-slate-500">No messages yet. Add one below!</p>}
+                              {chatMessages.map((msg) => (
+                                <div key={msg.id} className="flex items-center justify-between group">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xs font-mono bg-slate-100 dark:bg-zinc-800 px-2 py-1 rounded text-slate-500">{msg.time}</span>
+                                    <span className="text-sm font-medium dark:text-zinc-300">{msg.text}</span>
+                                  </div>
+                                  <button onClick={() => removeMessage(msg.id)} className="text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    ✕
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="flex gap-2 items-center">
+                               <input 
+                                 type="text" 
+                                 placeholder="00:00" 
+                                 value={newMessageTime}
+                                 onChange={e => setNewMessageTime(e.target.value)}
+                                 className="w-20 px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono" 
+                               />
+                               <input 
+                                 type="text" 
+                                 placeholder="Type message..." 
+                                 value={newMessageText}
+                                 onChange={e => setNewMessageText(e.target.value)}
+                                 onKeyDown={e => e.key === 'Enter' && handleAddMessage()}
+                                 className="flex-1 px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                               />
+                               <button 
+                                 onClick={handleAddMessage} 
+                                 disabled={!newMessageTime || !newMessageText}
+                                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                               >
+                                 Add
+                               </button>
+                            </div>
+                         </div>
+                      </motion.div>
+                    )}
+                 </div>
               </div>
 
                  <div className="hidden lg:flex flex-col items-center pt-8 lg:pt-0">
@@ -607,8 +643,8 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
                               <input 
                                 type="text" 
                                 placeholder="45:00" 
-                                value={newOfferPopTime}
-                                onChange={e => setNewOfferPopTime(e.target.value)}
+                                value={newOfferPopUpTime}
+                                onChange={e => setNewOfferPopUpTime(e.target.value)}
                                 className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono" 
                               />
                             </div>
@@ -635,7 +671,7 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
                                 />
                                 <button 
                                   onClick={handleAddOffer} 
-                                  disabled={!newOfferTitle || !newOfferPopTime || !newOfferUrl}
+                                  disabled={!newOfferTitle || !newOfferPopUpTime || !newOfferUrl}
                                   className="px-6 py-2 bg-slate-900 dark:bg-white dark:text-zinc-900 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                                 >
                                   Add

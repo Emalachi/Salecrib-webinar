@@ -40,7 +40,9 @@ export default function RegistrationForm({ onComplete, slug }: { onComplete: () 
     <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 flex flex-col font-sans">
       <div className="flex-1 flex flex-col w-full">
         {blocks.map((block: Block) => (
-          <RenderBlock key={block.id} block={block} onActionClick={() => setShowModal(true)} />
+          <React.Fragment key={block.id}>
+            <RenderBlock block={block} onActionClick={() => setShowModal(true)} />
+          </React.Fragment>
         ))}
       </div>
 
