@@ -65,6 +65,7 @@ export default function App() {
     return 'dashboard';
   });
   const [selectedWebinarSlug, setSelectedWebinarSlug] = useState<string | null>(null);
+  const [selectedWebinarId, setSelectedWebinarId] = useState<string | null>(null);
   
   // Intercept paths for external links like registration
   useEffect(() => {
@@ -236,7 +237,12 @@ export default function App() {
             return (
               <button
                 key={item.id}
-                onClick={() => setCurrentView(item.id as ViewState)}
+                onClick={() => {
+                  if (item.id !== 'create-webinar') {
+                    setSelectedWebinarId(null);
+                  }
+                  setCurrentView(item.id as ViewState);
+                }}
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all group overflow-hidden whitespace-nowrap",
                   isActive 
@@ -384,7 +390,10 @@ export default function App() {
 
             {user.role === 'marketer' && (
               <button 
-                onClick={() => setCurrentView('create-webinar')}
+                onClick={() => {
+                  setSelectedWebinarId(null);
+                  setCurrentView('create-webinar');
+                }}
                 className="ml-1 hidden sm:flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors border border-transparent focus:ring-4 focus:ring-indigo-500/20"
               >
                 <Video className="w-4 h-4" />
@@ -428,7 +437,11 @@ export default function App() {
                   onEditPage={(slug) => {
                     setSelectedWebinarSlug(slug);
                     setCurrentView('page-builder');
-                  }} 
+                  }}
+                  onEditWebinar={(id) => {
+                    setSelectedWebinarId(id);
+                    setCurrentView('create-webinar');
+                  }}
                 />
               </motion.div>
             )}
@@ -442,7 +455,13 @@ export default function App() {
                  transition={{ duration: 0.2 }}
                  className="h-full flex flex-col"
                >
-                 <CreateWebinar onCancel={() => setCurrentView('webinars')} />
+                 <CreateWebinar 
+                   onCancel={() => {
+                     setSelectedWebinarId(null);
+                     setCurrentView('webinars');
+                   }}
+                   editWebinarId={selectedWebinarId}
+                 />
                </motion.div>
             )}
 

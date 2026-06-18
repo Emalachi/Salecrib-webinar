@@ -5,8 +5,8 @@ import type { ViewState } from '../App';
 
 import { useFirestore } from '../hooks/useFirestore';
 
-export default function WebinarsList({ onNavigate, onEditPage }: { onNavigate: (view: ViewState) => void; onEditPage?: (slug: string) => void }) {
-  const { data: webinars, loading, error, deleteDocument } = useFirestore<any>('webinars');
+export default function WebinarsList({ onNavigate, onEditPage, onEditWebinar }: { onNavigate: (view: ViewState) => void; onEditPage?: (slug: string) => void; onEditWebinar?: (id: string) => void }) {
+  const { data: webinars, loading, error, deleteDocument, addDocument } = useFirestore<any>('webinars');
   const [filter, setFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [linksModalWebinar, setLinksModalWebinar] = useState<any | null>(null);
@@ -139,8 +139,8 @@ export default function WebinarsList({ onNavigate, onEditPage }: { onNavigate: (
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <ActionBtn icon={LinkIcon} title="Get Links" onClick={() => setLinksModalWebinar(webinar)} />
-                      <ActionBtn icon={BarChart} title="Analytics" />
-                      <ActionBtn icon={Settings} title="Settings" />
+                      <ActionBtn icon={BarChart} title="Analytics" onClick={() => onNavigate('analytics')} />
+                      <ActionBtn icon={Settings} title="Settings" onClick={() => { if (onEditWebinar) onEditWebinar(webinar.id); }} />
                       <div className="relative">
                         <ActionBtn 
                           icon={MoreHorizontal} 
@@ -149,7 +149,13 @@ export default function WebinarsList({ onNavigate, onEditPage }: { onNavigate: (
                         />
                         {openMenuId === webinar.id && (
                           <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg shadow-lg z-50 py-1">
-                             <button className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-zinc-800 text-sm">Edit Webinar</button>
+                             <button 
+                               onClick={() => {
+                                 setOpenMenuId(null);
+                                 if (onEditWebinar) onEditWebinar(webinar.id);
+                               }}
+                               className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-zinc-800 text-sm"
+                             >Edit Webinar</button>
                              <button 
                                onClick={() => { 
                                  setOpenMenuId(null);
@@ -157,7 +163,24 @@ export default function WebinarsList({ onNavigate, onEditPage }: { onNavigate: (
                                }} 
                                className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-zinc-800 text-sm"
                              >Edit Landing Page</button>
-                             <button className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-zinc-800 text-sm">Duplicate</button>
+                             <button 
+                               onClick={async () => {
+                                 setOpenMenuId(null);
+                                 try {
+                                   const newWebinar = { ...webinar };
+                                   delete newWebinar.id;
+                                   newWebinar.title = `${webinar.title} (Copy)`;
+                                   newWebinar.slug = `${webinar.slug}-copy-${Math.floor(Math.random() * 1000)}`;
+                                   newWebinar.createdAt = new Date().toISOString();
+                                   newWebinar.registrants = 0;
+                                   newWebinar.status = 'upcoming';
+                                   await addDocument(newWebinar);
+                                 } catch (err) {
+                                   console.error("Failed to duplicate webinar:", err);
+                                 }
+                               }}
+                               className="w-full text-left px-4 py-2 hover:bg-slate-50 dark:hover:bg-zinc-800 text-sm"
+                             >Duplicate</button>
                              <button 
                                onClick={() => {
                                  deleteDocument(webinar.id);

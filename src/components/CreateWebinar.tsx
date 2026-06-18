@@ -9,8 +9,8 @@ import { useFirestore } from '../hooks/useFirestore';
 
 import WebinarRoom from './WebinarRoom';
 
-export default function CreateWebinar({ onCancel }: { onCancel: () => void }) {
-  const { addDocument } = useFirestore<any>('webinars');
+export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: () => void; editWebinarId?: string | null }) {
+  const { addDocument, updateDocument, data: existingWebinars } = useFirestore<any>('webinars');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
   const totalSteps = 5;
@@ -38,6 +38,30 @@ export default function CreateWebinar({ onCancel }: { onCancel: () => void }) {
   ]);
   const [newMessageTime, setNewMessageTime] = useState('');
   const [newMessageText, setNewMessageText] = useState('');
+
+  React.useEffect(() => {
+    if (editWebinarId && existingWebinars) {
+      const webinar = existingWebinars.find((w: any) => w.id === editWebinarId);
+      if (webinar) {
+        setTitle(webinar.title || '');
+        setDescription(webinar.description || '');
+        setType(webinar.type || 'Live');
+        setDate(webinar.date || '2026-10-15');
+        setTime(webinar.time || '14:00');
+        setTimezone(webinar.timezone || TIMEZONES[0]);
+        setVideoLink(webinar.videoLink || '');
+        
+        if (webinar.chatConfig) {
+          setEnableChat(webinar.chatConfig.enabled ?? true);
+          setAutoReply(webinar.chatConfig.autoReply ?? true);
+          setDynamicNames(webinar.chatConfig.dynamicNames ?? true);
+          if (webinar.chatConfig.messages && webinar.chatConfig.messages.length > 0) {
+            setChatMessages(webinar.chatConfig.messages);
+          }
+        }
+      }
+    }
+  }, [editWebinarId, existingWebinars]);
 
   const handleAddMessage = () => {
     if (newMessageTime && newMessageText) {
@@ -67,7 +91,7 @@ export default function CreateWebinar({ onCancel }: { onCancel: () => void }) {
     setLoading(true);
     setErrorDetails('');
     try {
-      await addDocument({
+      const webinarData = {
         title,
         description,
         type,
@@ -76,16 +100,24 @@ export default function CreateWebinar({ onCancel }: { onCancel: () => void }) {
         timezone,
         videoLink,
         status: 'upcoming',
-        registrants: 0,
-        chatSettings: {
+        chatConfig: {
           enabled: enableChat,
           autoReply,
           dynamicNames,
           messages: chatMessages
-        },
-        slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') + '-' + Math.floor(Math.random() * 1000),
-        createdAt: new Date().toISOString()
-      });
+        }
+      };
+      
+      if (editWebinarId) {
+        await updateDocument(editWebinarId, webinarData);
+      } else {
+        await addDocument({
+          ...webinarData,
+          registrants: 0,
+          slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') + '-' + Math.floor(Math.random() * 1000),
+          createdAt: new Date().toISOString()
+        });
+      }
       onCancel();
     } catch (err: any) {
       console.error(err);

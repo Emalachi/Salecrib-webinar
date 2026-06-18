@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
 import { useFirestore } from '../hooks/useFirestore';
 import { 
   ArrowLeft, Save, MousePointer2, Type, Image as ImageIcon, Video, 
-  List, User, Calendar, Layout, Trash2, Plus, MoveUp, MoveDown, CheckCircle2, ChevronRight, Settings2, ShieldCheck, PlayCircle
+  List, User, Calendar, Layout, Trash2, Plus, GripVertical, CheckCircle2, ChevronRight, Settings2, ShieldCheck, PlayCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -155,32 +155,17 @@ export default function LandingPageBuilder({ webinarSlug, onBack }: { webinarSlu
                  <p>Drag or add elements to start building</p>
                </div>
             ) : (
-              <div className="flex flex-col">
-                {blocks.map((block, index) => (
-                  <div 
+              <Reorder.Group axis="y" values={blocks} onReorder={setBlocks} className="flex flex-col">
+                {blocks.map((block) => (
+                  <BlockWrapper 
                     key={block.id} 
-                    className={cn(
-                      "relative group border-2 transition-all cursor-pointer",
-                      selectedBlockId === block.id 
-                        ? "border-indigo-500 z-10" 
-                        : "border-transparent hover:border-indigo-500/30"
-                    )}
-                    onClick={(e) => { e.stopPropagation(); setSelectedBlockId(block.id); }}
-                  >
-                    {/* Controls */}
-                    {selectedBlockId === block.id && (
-                      <div className="absolute -top-10 right-0 bg-indigo-500 text-white flex items-center rounded-t-lg shadow-lg overflow-hidden h-9">
-                        <button onClick={(e) => moveBlock(index, 'up', e)} disabled={index === 0} className="w-9 h-full flex items-center justify-center hover:bg-indigo-600 disabled:opacity-50"><MoveUp className="w-4 h-4" /></button>
-                        <button onClick={(e) => moveBlock(index, 'down', e)} disabled={index === blocks.length - 1} className="w-9 h-full flex items-center justify-center hover:bg-indigo-600 disabled:opacity-50"><MoveDown className="w-4 h-4" /></button>
-                        <div className="w-px h-5 bg-indigo-400"></div>
-                        <button onClick={(e) => removeBlock(block.id, e)} className="w-9 h-full flex items-center justify-center hover:bg-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
-                      </div>
-                    )}
-                    
-                    <RenderBlock block={block} />
-                  </div>
+                    block={block} 
+                    selectedBlockId={selectedBlockId} 
+                    setSelectedBlockId={setSelectedBlockId} 
+                    removeBlock={removeBlock} 
+                  />
                 ))}
-              </div>
+              </Reorder.Group>
             )}
           </div>
         </div>
@@ -273,6 +258,40 @@ function BlockDraggable({ type, icon: Icon, label, onClick }: any) {
       <Icon className="w-6 h-6 text-slate-500 dark:text-zinc-400" />
       <span className="text-xs font-medium text-slate-700 dark:text-zinc-300">{label}</span>
     </button>
+  );
+}
+
+function BlockWrapper({ block, selectedBlockId, setSelectedBlockId, removeBlock }: any) {
+  const dragControls = useDragControls();
+
+  return (
+    <Reorder.Item
+      value={block}
+      dragListener={false}
+      dragControls={dragControls}
+      className={cn(
+         "relative group border-2 transition-all cursor-pointer",
+         selectedBlockId === block.id 
+           ? "border-indigo-500 z-10 shadow-lg" 
+           : "border-transparent hover:border-indigo-500/30"
+      )}
+      onClick={(e: any) => { e.stopPropagation(); setSelectedBlockId(block.id); }}
+    >
+      {selectedBlockId === block.id && (
+        <div className="absolute -top-10 right-0 bg-indigo-500 text-white flex items-center rounded-t-lg shadow-lg overflow-hidden h-9">
+          <div 
+             className="w-9 h-full flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-indigo-600"
+             onPointerDown={(e) => dragControls.start(e)}
+          >
+             <GripVertical className="w-4 h-4" />
+          </div>
+          <div className="w-px h-5 bg-indigo-400"></div>
+          <button onClick={(e) => removeBlock(block.id, e)} className="w-9 h-full flex items-center justify-center hover:bg-red-500 transition-colors"><Trash2 className="w-4 h-4" /></button>
+        </div>
+      )}
+      
+      <RenderBlock block={block} />
+    </Reorder.Item>
   );
 }
 
