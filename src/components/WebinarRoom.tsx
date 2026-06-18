@@ -28,6 +28,7 @@ export default function WebinarRoom({ onLeave, slug }: { onLeave: () => void, sl
   const webinar = webinars?.find((w: any) => w.slug === slug) || null;
   const title = webinar?.title || '10x Your Marketing Strategy Using Automated Funnels';
 
+
   const [isPlaying, setIsPlaying] = useState(true);
   const [chatMessage, setChatMessage] = useState('');
   const [messages, setMessages] = useState([
@@ -36,6 +37,37 @@ export default function WebinarRoom({ onLeave, slug }: { onLeave: () => void, sl
     { id: 3, user: 'Mike T.', text: 'Audio is coming through perfectly from my end.', isSystem: false, time: '10:02 AM' },
   ]);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout | undefined;
+    if (isPlaying) {
+      timer = setInterval(() => {
+        setElapsedSeconds(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [isPlaying]);
+
+  const activeOffer = React.useMemo(() => {
+    if (!webinar?.offersConfig?.enabled || !webinar?.offersConfig?.offers) return null;
+    
+    // Finds the offer that matches the current elapsed time
+    const timeToSeconds = (timeStr: string) => {
+      if (!timeStr) return 0;
+      const parts = timeStr.split(':');
+      if (parts.length === 2) {
+        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+      }
+      return parseInt(timeStr) || 0; // fallback to raw seconds if invalid format
+    };
+
+    return webinar.offersConfig.offers.find((offer: any) => {
+      const startSec = timeToSeconds(offer.popUpTime);
+      return elapsedSeconds >= startSec && elapsedSeconds < (startSec + (parseInt(offer.durationSeconds) || 60));
+    });
+  }, [webinar, elapsedSeconds]);
 
   useEffect(() => {
     let interval: any;
@@ -153,7 +185,7 @@ export default function WebinarRoom({ onLeave, slug }: { onLeave: () => void, sl
                 {isPlaying ? <Pause className="w-5 h-5" /> : <PlayCircle className="w-5 h-5" />}
               </button>
               <div className="text-xs font-mono text-slate-500">
-                {isPlaying ? "LIVE" : "00:00:00"}
+                {isPlaying ? `LIVE (${Math.floor(elapsedSeconds / 60).toString().padStart(2, '0')}:${(elapsedSeconds % 60).toString().padStart(2, '0')})` : "00:00:00"}
               </div>
             </div>
             
@@ -186,6 +218,24 @@ export default function WebinarRoom({ onLeave, slug }: { onLeave: () => void, sl
               Polls
             </button>
           </div>
+
+          {/* Active Offer Banner */}
+          {activeOffer && (
+            <div className="bg-indigo-600/10 border-b border-indigo-500/20 p-4 shrink-0 animate-in slide-in-from-top-2">
+              <div className="bg-slate-900 border border-indigo-500/30 rounded-xl p-3 shadow-lg flex flex-col items-center text-center relative overflow-hidden">
+                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+                <h4 className="font-bold text-sm text-white mb-1 mt-1">{activeOffer.title}</h4>
+                <a 
+                  href={activeOffer.url} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg mt-2 transition-colors block"
+                >
+                  {activeOffer.buttonText || 'Claim Offer'}
+                </a>
+              </div>
+            </div>
+          )}
 
           {/* Chat Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
