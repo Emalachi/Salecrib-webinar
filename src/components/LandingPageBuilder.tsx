@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
 import { useFirestore } from '../hooks/useFirestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../lib/firebase';
 import { 
   ArrowLeft, Save, MousePointer2, Type, Image as ImageIcon, Video, 
-  List, User, Calendar, Layout, Trash2, Plus, GripVertical, CheckCircle2, ChevronRight, Settings2, ShieldCheck, PlayCircle
+  List, User, Calendar, Layout, Trash2, Plus, GripVertical, CheckCircle2, ChevronRight, Settings2, ShieldCheck, PlayCircle, Loader2
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -38,27 +40,37 @@ export const DEFAULT_BLOCKS: Block[] = [
   }
 ];
 
-export default function LandingPageBuilder({ webinarSlug, onBack }: { webinarSlug: string | null; onBack: () => void }) {
+export default function LandingPageBuilder({ webinarSlug, onBack, initialBlocks, onSaveBlocks }: { webinarSlug?: string | null; onBack: () => void; initialBlocks?: Block[]; onSaveBlocks?: (blocks: Block[]) => Promise<void> }) {
   const { data: webinars, updateDocument } = useFirestore<any>('webinars');
-  const webinar = webinars.find((w: any) => w.slug === webinarSlug);
+  const webinar = webinarSlug ? webinars.find((w: any) => w.slug === webinarSlug) : null;
   
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (webinar && webinar.landingPageBlocks) {
+    if (initialBlocks) {
+      setBlocks(initialBlocks);
+    } else if (webinar && webinar.landingPageBlocks) {
       setBlocks(webinar.landingPageBlocks);
     } else if (blocks.length === 0) {
       setBlocks(DEFAULT_BLOCKS);
     }
-  }, [webinar]);
+  }, [webinar]); // deliberately omitting initialBlocks so we only do this once on mount if applicable
+
+  // Notify parent on change
+  useEffect(() => {
+    if (onSaveBlocks && blocks.length > 0) {
+      onSaveBlocks(blocks);
+    }
+  }, [blocks]);
 
   const handleSave = async () => {
-    if (!webinar) return;
     setIsSaving(true);
     try {
-      await updateDocument(webinar.id, { landingPageBlocks: blocks });
+      if (webinar) {
+        await updateDocument(webinar.id, { landingPageBlocks: blocks });
+      }
       setTimeout(() => setIsSaving(false), 800);
     } catch (e) {
       console.error(e);
@@ -94,10 +106,27 @@ export default function LandingPageBuilder({ webinarSlug, onBack }: { webinarSlu
   };
 
   const selectedBlock = blocks.find(b => b.id === selectedBlockId);
+  const [uploadingProp, setUploadingProp] = useState<string | null>(null);
+
+  const handleFileUpload = async (blockId: string, key: string, file: File) => {
+    try {
+      setUploadingProp(key);
+      const storageRef = ref(storage, `landing-pages/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      updateBlockProp(blockId, key, url);
+    } catch (err) {
+      console.error('Upload failed:', err);
+      alert('Failed to upload file');
+    } finally {
+      setUploadingProp(null);
+    }
+  };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-100 dark:bg-zinc-950 overflow-hidden">
+    <div className="flex flex-col h-full bg-slate-100 dark:bg-zinc-950 overflow-hidden rounded-bl-3xl rounded-br-3xl">
       {/* Top Bar */}
+      {webinarSlug && (
       <header className="h-14 bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 flex items-center justify-between px-4 shrink-0">
         <div className="flex items-center gap-4">
           <button onClick={onBack} className="p-2 -ml-2 text-slate-500 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors">
@@ -127,6 +156,7 @@ export default function LandingPageBuilder({ webinarSlug, onBack }: { webinarSlu
           </button>
         </div>
       </header>
+      )}
 
       {/* Main Workspace */}
       <div className="flex-1 flex overflow-hidden">
@@ -142,6 +172,7 @@ export default function LandingPageBuilder({ webinarSlug, onBack }: { webinarSlu
             <BlockDraggable type="hero" icon={Type} label="Hero Header" onClick={() => addBlock('hero')} />
             <BlockDraggable type="features" icon={List} label="Feature List" onClick={() => addBlock('features')} />
             <BlockDraggable type="video" icon={Video} label="Video Embed" onClick={() => addBlock('video')} />
+            <BlockDraggable type="image" icon={ImageIcon} label="Image" onClick={() => addBlock('image')} />
             <BlockDraggable type="instructor" icon={User} label="Instructor Bio" onClick={() => addBlock('instructor')} />
           </div>
         </div>
@@ -224,6 +255,31 @@ export default function LandingPageBuilder({ webinarSlug, onBack }: { webinarSlu
                            rows={3}
                            className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 resize-none"
                          />
+                       ) : key === 'url' ? (
+                         <div className="space-y-2">
+                            <input 
+                              type="text"
+                              value={selectedBlock.props[key]}
+                              onChange={(e) => updateBlockProp(selectedBlock.id, key, e.target.value)}
+                              className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500"
+                            />
+                            <div className="relative">
+                              <input 
+                                type="file" 
+                                accept="image/*,video/*"
+                                onChange={(e) => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    handleFileUpload(selectedBlock.id, key, e.target.files[0]);
+                                  }
+                                }}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              />
+                              <button disabled={uploadingProp === key} className="w-full px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 rounded-lg text-sm font-medium flex items-center justify-center gap-2 cursor-pointer pointer-events-none">
+                                {uploadingProp === key ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                                {uploadingProp === key ? 'Uploading...' : 'Upload File'}
+                              </button>
+                            </div>
+                         </div>
                        ) : (
                          <input 
                            type="text"
@@ -304,6 +360,8 @@ function getDefaultProps(type: string) {
       return { title: 'What You Will Discover', features: ['Key benefit one', 'Key benefit two', 'Key benefit three'] };
     case 'video':
       return { url: 'https://youtube.com/...', title: 'Watch the trailer' };
+    case 'image':
+      return { url: 'https://images.unsplash.com/photo-1540317580384-e5d43616b9aa?auto=format&fit=crop&w=800&q=80', alt: 'Descriptive text' };
     case 'instructor':
       return { name: 'Host Name', bio: 'Expert in the field with years of experience.', role: 'CEO & Founder' };
     default: return {};
@@ -311,16 +369,31 @@ function getDefaultProps(type: string) {
 }
 
 // Renderers for different block types
-export function RenderBlock({ block, onActionClick }: { block: Block; onActionClick?: () => void }) {
+export function RenderBlock({ block, onActionClick, webinar }: { block: Block; onActionClick?: () => void; webinar?: any }) {
   const { type, props } = block;
   
   if (type === 'hero') {
+    let dateDisplay = 'Live Masterclass';
+    
+    if (webinar) {
+      if (webinar.isJitMode) {
+        // Find the next hour boundary
+        const now = new Date();
+        now.setMinutes(0, 0, 0);
+        now.setHours(now.getHours() + 1);
+        dateDisplay = `Today at ${now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} (Local Time)`;
+      } else if (webinar.date && webinar.time) {
+        const d = new Date(`${webinar.date}T${webinar.time}`);
+        dateDisplay = isNaN(d.getTime()) ? `${webinar.date} at ${webinar.time}` : d.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      }
+    }
+
     return (
       <div className="py-20 px-8 bg-gradient-to-b from-indigo-900 to-slate-900 text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1540317580384-e5d43616b9aa?auto=format&fit=crop&w=2000&q=80')] opacity-20 bg-cover bg-center mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-indigo-950 opacity-50 mix-blend-overlay"></div>
         <div className="relative z-10 max-w-3xl mx-auto space-y-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-sm font-medium backdrop-blur-md mb-4">
-            <Calendar className="w-4 h-4" /> Live Masterclass
+            <Calendar className="w-4 h-4" /> {dateDisplay}
           </div>
           <h1 className="text-4xl md:text-5xl font-display font-bold text-white leading-tight">
             {props.headline}
@@ -357,13 +430,37 @@ export function RenderBlock({ block, onActionClick }: { block: Block; onActionCl
   }
 
   if (type === 'video') {
+    const isMp4 = props.url?.includes('.mp4') || props.url?.includes('.webm') || props.url?.includes('firebasestorage');
+    const isYoutube = props.url?.includes('youtube.com') || props.url?.includes('youtu.be');
+    
     return (
-      <div className="py-16 px-8 bg-slate-50 dark:bg-zinc-900">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-xl font-bold mb-6">{props.title}</h2>
-          <div className="aspect-video bg-slate-200 dark:bg-black rounded-2xl border border-slate-300 dark:border-zinc-800 flex items-center justify-center relative overflow-hidden group">
-            <PlayCircle className="w-16 h-16 text-indigo-500 opacity-80 group-hover:scale-110 transition-transform" />
+      <div className="py-16 px-8 bg-slate-50 dark:bg-zinc-900 border-y border-slate-200 dark:border-zinc-800">
+        <div className="max-w-4xl mx-auto text-center">
+          {props.title && <h2 className="text-2xl font-bold mb-8 text-slate-900 dark:text-white">{props.title}</h2>}
+          <div className="aspect-video bg-black rounded-2xl border border-slate-300 dark:border-zinc-800 flex items-center justify-center relative overflow-hidden group shadow-2xl">
+            {isMp4 ? (
+              <video src={props.url} controls className="w-full h-full object-cover" />
+            ) : isYoutube ? (
+              <iframe 
+                 src={props.url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} 
+                 className="w-full h-full"
+                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                 allowFullScreen
+              ></iframe>
+            ) : (
+              <PlayCircle className="w-16 h-16 text-indigo-500 opacity-80 group-hover:scale-110 transition-transform" />
+            )}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (type === 'image') {
+    return (
+      <div className="py-16 px-8 bg-white dark:bg-zinc-950">
+        <div className="max-w-4xl mx-auto flex items-center justify-center">
+           <img src={props.url} alt={props.alt} className="max-w-full h-auto rounded-2xl shadow-xl" referrerPolicy="no-referrer" />
         </div>
       </div>
     );

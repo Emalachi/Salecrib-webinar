@@ -8,12 +8,13 @@ import {
 import { useFirestore } from '../hooks/useFirestore';
 
 import WebinarRoom from './WebinarRoom';
+import LandingPageBuilder from './LandingPageBuilder';
 
 export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: () => void; editWebinarId?: string | null }) {
   const { addDocument, updateDocument, data: existingWebinars } = useFirestore<any>('webinars');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const totalSteps = 6;
+  const totalSteps = 7;
   
   // Form state
   const [title, setTitle] = useState('');
@@ -23,6 +24,11 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
   const [time, setTime] = useState('14:00');
   const [timezone, setTimezone] = useState(TIMEZONES[0] || 'UTC');
   const [videoLink, setVideoLink] = useState('');
+  
+  // Believability Settings
+  const [isJitMode, setIsJitMode] = useState(false);
+  const [peakAttendees, setPeakAttendees] = useState(150);
+  const [namePool, setNamePool] = useState('Alex, Sarah, Michael, Emma, John, Lisa, David, Chloe, James, Sophie');
 
   // Chat Simulation State
   const [enableChat, setEnableChat] = useState(true);
@@ -49,6 +55,7 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
   const [newOfferUrl, setNewOfferUrl] = useState('');
   const [newOfferButtonText, setNewOfferButtonText] = useState('Claim Offer');
   const [newOfferAnimation, setNewOfferAnimation] = useState('none');
+  const [landingPageBlocks, setLandingPageBlocks] = useState<any[]>([]);
 
   React.useEffect(() => {
     if (editWebinarId && existingWebinars) {
@@ -61,6 +68,11 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
         setTime(webinar.time || '14:00');
         setTimezone(webinar.timezone || TIMEZONES[0]);
         setVideoLink(webinar.videoLink || '');
+        setLandingPageBlocks(webinar.landingPageBlocks || []);
+        
+        if (webinar.isJitMode !== undefined) setIsJitMode(webinar.isJitMode);
+        if (webinar.peakAttendees !== undefined) setPeakAttendees(webinar.peakAttendees);
+        if (webinar.namePool !== undefined) setNamePool(webinar.namePool);
         
         if (webinar.chatConfig) {
           setEnableChat(webinar.chatConfig.enabled ?? true);
@@ -142,6 +154,9 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
         timezone,
         videoLink,
         status: 'upcoming',
+        isJitMode,
+        peakAttendees,
+        namePool,
         chatConfig: {
           enabled: enableChat,
           autoReply,
@@ -151,7 +166,8 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
         offersConfig: {
           enabled: offersEnabled,
           offers
-        }
+        },
+        landingPageBlocks
       };
       
       if (editWebinarId) {
@@ -354,6 +370,26 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
                   </select>
                 </div>
 
+                  <div className="space-y-4">
+                    <div className="p-4 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl flex items-start gap-4">
+                       <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl flex items-center justify-center shrink-0">
+                          <CheckCircle2 className="w-5 h-5" />
+                       </div>
+                       <div>
+                          <div className="flex items-center gap-3 mb-1">
+                            <h3 className="font-semibold text-slate-900 dark:text-white">Just-In-Time (JIT) Mode</h3>
+                            <button 
+                              onClick={() => setIsJitMode(!isJitMode)}
+                              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isJitMode ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-zinc-700'}`}
+                            >
+                              <span className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${isJitMode ? 'translate-x-5' : 'translate-x-1'}`} />
+                            </button>
+                          </div>
+                           <p className="text-sm text-slate-500 dark:text-zinc-400">Viewers see rolling startup times. Webinar always starts from point 0 exactly when they join.</p>
+                       </div>
+                    </div>
+                  </div>
+
                 <div className="space-y-4 mt-8">
                   <label className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
                     Video Source {type === 'Evergreen' ? '(Required)' : '(Optional Backup)'}
@@ -403,6 +439,36 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
                          </div>
                           <p className="text-sm text-slate-500 dark:text-zinc-400 mb-4">Automatically send pre-written messages at specific times to increase engagement.</p>
                        </div>
+                    </div>
+
+                    <div className="p-6 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl space-y-4">
+                      <div>
+                        <h3 className="font-semibold text-slate-900 dark:text-white mb-1">Believability Settings</h3>
+                        <p className="text-sm text-slate-500 dark:text-zinc-400">Configure how the simulation behaves to make it feel authentic.</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Peak Attendee Count</label>
+                          <input 
+                            type="number" 
+                            min="10" max="10000"
+                            value={peakAttendees}
+                            onChange={(e) => setPeakAttendees(parseInt(e.target.value) || 150)}
+                            className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Simulated Name Pool (Comma Separated)</label>
+                          <input 
+                            type="text" 
+                            value={namePool}
+                            onChange={(e) => setNamePool(e.target.value)}
+                            placeholder="Alex, Sarah, Michael, Chidi, Ngozi"
+                            className="w-full px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" 
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     {enableChat && (
@@ -743,6 +809,33 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
             {step === 6 && (
               <motion.div 
                 key="step6"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-6 flex flex-col h-[600px]"
+              >
+                <div>
+                  <h2 className="text-2xl font-display font-semibold mb-2">Registration Page</h2>
+                  <p className="text-slate-500 dark:text-zinc-400 mb-4">Design your landing page using the builder below.</p>
+                </div>
+                <div className="flex-1 -mx-8 relative overflow-hidden border-y border-slate-200 dark:border-zinc-800">
+                   <div className="absolute inset-0 bg-slate-50 dark:bg-zinc-950/50">
+                     <LandingPageBuilder 
+                        webinarSlug={null}
+                        initialBlocks={landingPageBlocks.length > 0 ? landingPageBlocks : undefined}
+                        onSaveBlocks={async (blocks) => {
+                          setLandingPageBlocks(blocks);
+                        }}
+                        onBack={() => {}}
+                     />
+                   </div>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 7 && (
+              <motion.div 
+                key="step7"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}

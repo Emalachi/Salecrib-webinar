@@ -28,27 +28,136 @@ export default function WebinarRoom({ onLeave, slug }: { onLeave: () => void, sl
   const webinar = webinars?.find((w: any) => w.slug === slug) || null;
   const title = webinar?.title || '10x Your Marketing Strategy Using Automated Funnels';
 
-
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(true);
   const [chatMessage, setChatMessage] = useState('');
-  const [messages, setMessages] = useState([
-    { id: 1, user: 'System', text: 'Welcome to the room!', isSystem: true, time: '10:00 AM' },
-    { id: 2, user: 'Sarah J.', text: 'Excited for this!', isSystem: false, time: '10:01 AM' },
-    { id: 3, user: 'Mike T.', text: 'Audio is coming through perfectly from my end.', isSystem: false, time: '10:02 AM' },
+  const [messages, setMessages] = useState<{id: any, user: string, text: string, isSystem: boolean, time: string}[]>([
+    { id: 1, user: 'System', text: 'Welcome to the room!', isSystem: true, time: 'System' }
   ]);
   const chatEndRef = useRef<HTMLDivElement>(null);
   
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [videoTime, setVideoTime] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(1); // avoid /0
+  const [attendeeCount, setAttendeeCount] = useState(0);
+  
+  // Scripted Chat Processing
+  const parsedChatScript = React.useMemo(() => {
+    if (!webinar?.chatConfig?.messages) return [];
+    
+    // Parse to seconds and add jitter
+    const namePoolStr = webinar?.namePool || FIRST_NAMES.join(',');
+    const names = namePoolStr.split(',').map((n: string) => n.trim()).filter(Boolean);
+    
+    return webinar.chatConfig.messages.map((m: any, i: number) => {
+      let msgSec = 0;
+      if (m.time) {
+        const parts = m.time.split(':');
+        if (parts.length === 2) {
+          msgSec = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+        } else {
+          msgSec = parseInt(m.time) || 0;
+        }
+      }
+      // Add jitter (-2 to +5 seconds)
+      const jitter = Math.random() * 7 - 2;
+      const triggerTime = Math.max(0, msgSec + jitter);
+      
+      return {
+        ...m,
+        triggerTime,
+        displayed: false,
+        user: webinar.chatConfig.dynamicNames 
+          ? names[Math.floor(Math.random() * names.length)]
+          : "Attendee"
+      };
+    }).sort((a: any, b: any) => a.triggerTime - b.triggerTime);
+  }, [webinar]);
+
+  // Keep track of which scripted messages we've shown
+  const [scriptedMsgIndex, setScriptedMsgIndex] = useState(0);
+
+  // Rejoin/Refresh Time Calculation
+  useEffect(() => {
+    if (!slug) return;
+    const entryKey = `azoma_entry_${slug}`;
+    const now = Date.now();
+    let entryTimeStr = localStorage.getItem(entryKey);
+    let entryTime: number;
+
+    if (!entryTimeStr) {
+      entryTime = now;
+      localStorage.setItem(entryKey, now.toString());
+    } else {
+      entryTime = parseInt(entryTimeStr, 10);
+      if (isNaN(entryTime)) {
+        entryTime = now;
+        localStorage.setItem(entryKey, now.toString());
+      }
+    }
+
+    const startSeconds = Math.max(0, Math.floor((now - entryTime) / 1000));
+    
+    if (videoRef.current) {
+      // Seek video to computed start time
+      // The browser might block autoplay, so we handle it below
+      videoRef.current.currentTime = startSeconds;
+      setVideoTime(startSeconds);
+    }
+  }, [slug, webinar?.isJitMode]); // We check isJitMode but logic holds: entry offsets zero
+
+  const handleTimeUpdate = () => {
+    if (videoRef.current) {
+      setVideoTime(videoRef.current.currentTime);
+      setVideoDuration(videoRef.current.duration || 1);
+    }
+  };
 
   useEffect(() => {
-    let timer: NodeJS.Timeout | undefined;
-    if (isPlaying) {
-      timer = setInterval(() => {
-        setElapsedSeconds(prev => prev + 1);
-      }, 1000);
+    // Process scripted chats against videoTime
+    const newMsgs = [];
+    let newIndex = scriptedMsgIndex;
+    
+    while (newIndex < parsedChatScript.length && parsedChatScript[newIndex].triggerTime <= videoTime) {
+      const msg = parsedChatScript[newIndex];
+      newMsgs.push({
+        id: `script_${newIndex}_${msg.id}`,
+        user: msg.user,
+        text: msg.text,
+        isSystem: false,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) // simulated local time
+      });
+      newIndex++;
     }
-    return () => clearInterval(timer);
-  }, [isPlaying]);
+    
+    if (newMsgs.length > 0) {
+      setMessages(prev => [...prev, ...newMsgs]);
+      setScriptedMsgIndex(newIndex);
+    }
+  }, [videoTime, parsedChatScript, scriptedMsgIndex]);
+
+  useEffect(() => {
+    // Generate realistic attendee count curve
+    const peak = webinar?.peakAttendees || 150;
+    const progress = videoTime / videoDuration;
+    
+    // Smooth bell curve-ish approach
+    // peak at 60% of video
+    // base amount is 10% of peak, grows up to peak, tapers to 70% of peak
+    let expectedCount = 0;
+    if (progress < 0.1) {
+      expectedCount = peak * 0.2 + (progress / 0.1) * (peak * 0.4);
+    } else if (progress < 0.6) {
+      expectedCount = peak * 0.6 + ((progress - 0.1) / 0.5) * (peak * 0.4);
+    } else if (progress < 0.9) {
+      expectedCount = peak - ((progress - 0.6) / 0.3) * (peak * 0.3);
+    } else {
+      expectedCount = peak * 0.7 - ((progress - 0.9) / 0.1) * (peak * 0.2);
+    }
+    
+    // Add small jitter
+    const jitter = Math.floor(Math.random() * 5) - 2; 
+    setAttendeeCount(Math.max(1, Math.floor(expectedCount + jitter)));
+  }, [videoTime, videoDuration, webinar]);
 
   const activeOffer = React.useMemo(() => {
     if (!webinar?.offersConfig?.enabled || !webinar?.offersConfig?.offers) return null;
@@ -65,30 +174,9 @@ export default function WebinarRoom({ onLeave, slug }: { onLeave: () => void, sl
 
     return webinar.offersConfig.offers.find((offer: any) => {
       const startSec = timeToSeconds(offer.popUpTime);
-      return elapsedSeconds >= startSec && elapsedSeconds < (startSec + (parseInt(offer.durationSeconds) || 60));
+      return videoTime >= startSec && videoTime < (startSec + (parseInt(offer.durationSeconds) || 60));
     });
-  }, [webinar, elapsedSeconds]);
-
-  useEffect(() => {
-    let interval: any;
-    if (isPlaying) {
-      interval = setInterval(() => {
-        if (Math.random() > 0.2) {
-           const user = `${FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)]} ${LAST_INITIALS[Math.floor(Math.random() * LAST_INITIALS.length)]}`;
-           const text = COMMENTS[Math.floor(Math.random() * COMMENTS.length)];
-           
-           setMessages(prev => [...prev, {
-             id: Date.now() + Math.random(),
-             user,
-             text,
-             isSystem: false,
-             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-           }]);
-        }
-      }, 1500);
-    }
-    return () => clearInterval(interval);
-  }, [isPlaying]);
+  }, [webinar, videoTime]);
 
   useEffect(() => {
     if (chatEndRef.current) {
@@ -122,6 +210,10 @@ export default function WebinarRoom({ onLeave, slug }: { onLeave: () => void, sl
           <h1 className="text-sm font-medium text-slate-100 hidden sm:block">{title}</h1>
         </div>
         <div className="flex items-center gap-4">
+           <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-800 rounded-full border border-slate-700">
+              <Users className="w-3.5 h-3.5 text-slate-400" />
+              <span className="text-xs font-medium text-slate-300">{attendeeCount.toLocaleString()}</span>
+           </div>
            <button 
              onClick={onLeave}
              className="text-sm text-slate-400 hover:text-white transition-colors"
@@ -134,26 +226,36 @@ export default function WebinarRoom({ onLeave, slug }: { onLeave: () => void, sl
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Video Player Area */}
-        <div className="flex-1 relative flex flex-col bg-black">
+        <div className="flex-1 relative flex flex-col bg-black group">
           <div className="flex-1 relative w-full h-full flex items-center justify-center p-4">
             <div className="relative w-full max-w-5xl aspect-video bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl">
-              {/* Wistia iframe with controls disabled to simulate live event. */}
-              {/* Replace 'f013dcbz0w' with actual dynamic video ID when backend is connected. */}
-              <iframe
-                src={`https://fast.wistia.net/embed/iframe/f013dcbz0w?autoPlay=${isPlaying ? 'true' : 'false'}&playbar=false&smallPlayButton=false&volumeControl=false&fullscreenButton=false&controlsVisibleOnLoad=false&playButton=false`}
-                allow="autoplay; fullscreen"
-                allowTransparency={true}
-                frameBorder="0"
-                scrolling="no"
-                className={cn("w-full h-full transition-opacity duration-500", isPlaying ? "opacity-100" : "opacity-40")}
-                style={{ pointerEvents: 'none' }}
-              ></iframe>
+              <video
+                ref={videoRef}
+                src={webinar?.videoLink || "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"}
+                autoPlay={isPlaying}
+                playsInline
+                className={cn("w-full h-full object-cover transition-opacity duration-500", isPlaying ? "opacity-100" : "opacity-40")}
+                style={{ pointerEvents: 'none' }} // block scrub
+                onTimeUpdate={handleTimeUpdate}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                onEnded={() => setIsPlaying(false)}
+              />
               
+              {/* Fake Buffering Shimmer */}
+              {isPlaying && Math.random() > 0.995 && (
+                <div className="absolute inset-0 bg-white/5 animate-pulse z-10 pointer-events-none"></div>
+              )}
+              
+              {/* Force Play Overlay if browser blocks autoplay */}
               {!isPlaying && (
-                <div className="absolute inset-0 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-20">
                   <button 
-                    onClick={() => setIsPlaying(true)}
-                    className="w-20 h-20 bg-indigo-600/90 hover:bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105"
+                    onClick={() => {
+                        setIsPlaying(true);
+                        videoRef.current?.play();
+                    }}
+                    className="w-20 h-20 bg-indigo-600/90 hover:bg-indigo-600 text-white rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 pointer-events-auto"
                   >
                     <PlayCircle className="w-10 h-10" />
                   </button>
@@ -179,13 +281,17 @@ export default function WebinarRoom({ onLeave, slug }: { onLeave: () => void, sl
           <div className="h-16 bg-slate-900 border-t border-slate-800 flex items-center justify-between px-6 shrink-0 z-10">
             <div className="flex items-center gap-4">
               <button 
-                onClick={() => setIsPlaying(!isPlaying)}
+                onClick={() => {
+                   if (isPlaying) videoRef.current?.pause();
+                   else videoRef.current?.play();
+                   setIsPlaying(!isPlaying);
+                }}
                 className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
               >
                 {isPlaying ? <Pause className="w-5 h-5" /> : <PlayCircle className="w-5 h-5" />}
               </button>
               <div className="text-xs font-mono text-slate-500">
-                {isPlaying ? `LIVE (${Math.floor(elapsedSeconds / 60).toString().padStart(2, '0')}:${(elapsedSeconds % 60).toString().padStart(2, '0')})` : "00:00:00"}
+                {isPlaying ? `LIVE (${Math.floor(videoTime / 60).toString().padStart(2, '0')}:${Math.floor(videoTime % 60).toString().padStart(2, '0')})` : "00:00"}
               </div>
             </div>
             

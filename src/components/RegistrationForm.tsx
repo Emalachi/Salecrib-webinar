@@ -41,7 +41,7 @@ export default function RegistrationForm({ onComplete, slug }: { onComplete: () 
       <div className="flex-1 flex flex-col w-full">
         {blocks.map((block: Block) => (
           <React.Fragment key={block.id}>
-            <RenderBlock block={block} onActionClick={() => setShowModal(true)} />
+            <RenderBlock block={block} onActionClick={() => setShowModal(true)} webinar={webinar} />
           </React.Fragment>
         ))}
       </div>
@@ -109,6 +109,27 @@ export default function RegistrationForm({ onComplete, slug }: { onComplete: () 
                     />
                   </div>
                 </div>
+
+                {webinar?.isJitMode && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-zinc-300 mb-1.5">Select Session</label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                      <select required className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 appearance-none">
+                        <option value="">Choose a time...</option>
+                        {Array.from({length: 4}).map((_, i) => {
+                          const date = new Date();
+                          date.setMinutes(0, 0, 0);
+                          date.setHours(date.getHours() + 1 + i*3); // Next boundary, then +3h, +6h
+                          const prefix = i === 0 ? "Today" : date.getDate() !== new Date().getDate() ? "Tomorrow" : "Today";
+                          return (
+                             <option key={i} value={date.toISOString()}>{prefix} at {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  </div>
+                )}
 
                 <button 
                   type="submit" 
