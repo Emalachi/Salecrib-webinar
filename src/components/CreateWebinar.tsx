@@ -48,6 +48,7 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
   const [newOfferDurationSeconds, setNewOfferDurationSeconds] = useState('60');
   const [newOfferUrl, setNewOfferUrl] = useState('');
   const [newOfferButtonText, setNewOfferButtonText] = useState('Claim Offer');
+  const [newOfferAnimation, setNewOfferAnimation] = useState('none');
 
   React.useEffect(() => {
     if (editWebinarId && existingWebinars) {
@@ -100,13 +101,15 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
         popUpTime: newOfferPopUpTime,
         durationSeconds: parseInt(newOfferDurationSeconds) || 60,
         url: newOfferUrl,
-        buttonText: newOfferButtonText
+        buttonText: newOfferButtonText,
+        animation: newOfferAnimation
       }]);
       setNewOfferTitle('');
       setNewOfferPopUpTime('');
       setNewOfferDurationSeconds('60');
       setNewOfferUrl('');
       setNewOfferButtonText('Claim Offer');
+      setNewOfferAnimation('none');
     }
   };
 
@@ -603,7 +606,7 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
                                         {offer.url}
                                       </a>
                                       <div className="mt-2 inline-block px-3 py-1 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 text-xs font-medium rounded-full border border-rose-100 dark:border-rose-500/20">
-                                        Btn: {offer.buttonText}
+                                        Btn: {offer.buttonText} {offer.animation && offer.animation !== 'none' ? `(+${offer.animation})` : ''}
                                       </div>
                                     </div>
                                   </div>
@@ -657,6 +660,18 @@ export default function CreateWebinar({ onCancel, editWebinarId }: { onCancel: (
                                 onChange={e => setNewOfferDurationSeconds(e.target.value)}
                                 className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono" 
                               />
+                            </div>
+                            <div className="col-span-2">
+                              <label className="block text-xs font-medium text-slate-500 mb-1">Button Animation</label>
+                              <select 
+                                value={newOfferAnimation}
+                                onChange={e => setNewOfferAnimation(e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              >
+                                <option value="none">None</option>
+                                <option value="pulse">Pulse</option>
+                                <option value="bounce">Bounce</option>
+                              </select>
                             </div>
                             <div className="col-span-2">
                               <label className="block text-xs font-medium text-slate-500 mb-1">Button Text</label>

@@ -229,7 +229,7 @@ export default function WebinarRoom({ onLeave, slug }: { onLeave: () => void, sl
                   href={activeOffer.url} 
                   target="_blank" 
                   rel="noreferrer" 
-                  className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg mt-2 transition-colors block"
+                  className={`w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg mt-2 transition-colors block ${activeOffer.animation === 'pulse' ? 'animate-pulse' : activeOffer.animation === 'bounce' ? 'animate-bounce' : ''}`}
                 >
                   {activeOffer.buttonText || 'Claim Offer'}
                 </a>
